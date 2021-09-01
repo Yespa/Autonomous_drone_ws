@@ -1,8 +1,8 @@
-#  EXPERIMENTAL AUTONOMOUS DRONE
+#  EXPERIMENTAL AUTONOMOUS DRONE 
 
 
 
-## SOFTWARE DEPENDENCIES :computer:
+## SOFTWARE DEPENDENCIES :file_cabinet:
 
 
 * [ROS Melodic Morenia](http://wiki.ros.org/melodic) <br>
@@ -18,8 +18,6 @@ The API allows developers to create Python apps that communicate with vehicles o
 * [OpenCV](https://opencv.org/) <br>
 OpenCV (Open Source Computer Vision Library) is a library of programming functions mainly aimed at real-time computer vision.
 
-* [](https://numpy.org/) <br>
-Numpy is a general-purpose array-processing package. It provides a high-performance multidimensional array object, and tools for working with these arrays. It is the fundamental package for scientific computing with Python.
 
 
 

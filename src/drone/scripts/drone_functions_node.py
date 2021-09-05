@@ -14,13 +14,14 @@ import time
 import socket
 import math
 import argparse
+from rospy import service
 
 from sensor_msgs.msg import NavSatFix, BatteryState
 from geometry_msgs.msg import TwistStamped, QuaternionStamped, PointStamped
 from std_msgs.msg import String
 
 #Importamos los servicios
-from drone.srv import arm, armResponse
+from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse
 
 
 class Node_functions_drone:
@@ -51,6 +52,10 @@ class Node_functions_drone:
         #SERVICIOS
 
         self.srv_arm_drone = rospy.Service("drone/srv/arm",arm,self.arm_drone)
+
+        self.srv_take_off = rospy.Service("drone/srv/take_off",takeoff,self.takeoff)
+
+        self.srv_rot_yaw = rospy.Service("drone/srv/rot_yaw",rot_yaw,self.condition_yaw)
 
         ##SUBSCRIPTORES
 
@@ -196,36 +201,46 @@ class Node_functions_drone:
             time.sleep(1)
         print("------El dron esta armado!------")
 
-        ######### Enviamos accion de despegue ##########
-        time.sleep(5)
-        print("------Despegando-------")
-        return(request.a)
+        estatus = 'Arm_check'
+
+        return armResponse(estatus)
+
 
     #METODO PARA REALIZAR EL DESPEGUE
     
-    def takeoff(self,alt_deseada):
+    def takeoff(self,request):
         
         if self.vehicle.armed == True:
 
-            self.vehicle.simple_takeoff(alt_deseada)        
+            ######### Enviamos accion de despegue ##########
+            time.sleep(2)
+            print("------Despegando-------")
+
+            self.vehicle.simple_takeoff(request.alt_deseada)        
 
             #Mostramos la altura actual y el codigo se detiene hasta que no llegue a la altura deseada, esto se hace
             #debido a que si se ejecuta otro comando, inmendiatamente se interrumpe la acción anterior.
 
+            
             while True:
                 print(" Altura actual: ", self.vehicle.location.global_relative_frame.alt)
 
                 #Verificamos que no exceda la altura deseada, cuando se cumple salimos de la funcion
 
-                if self.vehicle.location.global_relative_frame.alt >= alt_deseada * 0.95:
+                if self.vehicle.location.global_relative_frame.alt >= request.alt_deseada * 0.95:
                     print("")
                     print("------Altura deseada alcanzada-----")
                     break
                 time.sleep(1)
+            
+            estatus = "Alt_check"
 
         else:
             self.msg ='Dronenoarmed'
             print("drone no armado")
+            estatus = 'No_arm'
+
+        return takeoffResponse(estatus)
 
 
     #Metodo para enviar comandos de velocidad a la controladora de vuelo en coordenadas absolutas
@@ -273,7 +288,9 @@ class Node_functions_drone:
 
     #Metodo para realizar la rotacion del dron en el eje Z
 
-    def condition_yaw(self, relative=False):
+    def condition_yaw(self,request):
+
+        relative = False
 
         if relative:
             is_relative = 1 #yaw relative to direction of travel
@@ -284,7 +301,7 @@ class Node_functions_drone:
             0, 0,    # target system, target component
             mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
             0, #confirmation
-            self.heading,    # param 1, yaw in degrees
+            request.heading,    # param 1, yaw in degrees
             0,          # param 2, yaw speed deg/s
             1,          # param 3, direction -1 ccw, 1 cw
             is_relative, # param 4, relative offset 1, absolute angle 0
@@ -301,17 +318,19 @@ class Node_functions_drone:
             #Nos metemos en un ciclo hasta que se cumpla el valor de ultima posicion del cabeceo
             #para que la funcion no sea interrumpida por otro comando
 
-            if self.vehicle.heading > self.heading:
-                if self.vehicle.heading <= self.heading * 0.95:
+            if self.vehicle.heading > request.heading:
+                if self.vehicle.heading <= request.heading * 0.95:
                     print("------Orientacion deseada alcanzada-----")
                     break
                 time.sleep(1)
             else:
-                if self.vehicle.heading >= self.heading * 0.95:
+                if self.vehicle.heading >= request.heading * 0.95:
                     print("------Orientacion deseada alcanzada-----")
                     break
                 time.sleep(1)
 
+        estatus = "Rot_yaw_check"       
+        return rot_yawResponse(estatus)
 
     #Metodo para realizar un aterrizaje controlado.
 
@@ -345,10 +364,10 @@ def main():
 
     while not rospy.is_shutdown():
         
-        if drone.vehicle.armed == False:
+        #if drone.vehicle.armed == False:
         
-            drone.arm_drone('1')
-            drone.takeoff(10)
+            #drone.arm_drone('1')
+            #drone.takeoff(10)
 
 
         drone.publish_pos_gps()
@@ -357,7 +376,7 @@ def main():
 
         drone.publish_status_drone()
 
-        drone.Vel_mat_rot_Z()
+        #drone.Vel_mat_rot_Z()
 
 
 if __name__ == "__main__":

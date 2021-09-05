@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from os import killpg
 import rospy
 
 
@@ -16,6 +15,11 @@ from geometry_msgs.msg import TwistStamped, QuaternionStamped, PointStamped
 from std_msgs.msg import String
 
 
+#Importamos los servicios
+from drone.srv import arm, armResponse, takeoff, takeoffResponse
+
+
+
 class Node_navegation_drone:
 
     def __init__(self):
@@ -26,6 +30,16 @@ class Node_navegation_drone:
         self.heading = 0
         self.vel_lin_x = 0
         self.rate = rospy.Rate(10)
+        
+        #CLIENT SERVICES
+
+        #Esperamos que el servicio este activo y asignamos el cliente a un objeto
+        self.wait_srv_arm_drone = rospy.wait_for_service("drone/srv/arm")
+        self.client_srv_arm_drone = rospy.ServiceProxy("drone/srv/arm",arm)
+
+        self.wait_srv_take_off = rospy.wait_for_service("drone/srv/take_off")
+        self.client_serv_take_off = rospy.ServiceProxy("drone/srv/take_off",takeoff)
+
         #SUSCRIPTORES
 
         #Suscriptor de la posición actual del drone.
@@ -134,10 +148,8 @@ class Node_navegation_drone:
                 self.vel_lin_x = 0
                 self.heading = (ang_rotacion)  
                 self.publish_velocity()      
-                
-            
-            
                     
+                   
 
 def main():
 
@@ -145,17 +157,43 @@ def main():
     rospy.init_node('Navegacion')
 
     #Periodo de muestreo
-    rospy.Rate(25)
+    rospy.Rate(10)
 
     Navegacion = Node_navegation_drone()
 
+    estate = "inicio"
+
+    time.sleep(5)
+
+    print(" ")
+    print("-----Maquina de estados iniciada------")
+
     while not rospy.is_shutdown():
         
-        Navegacion.goto()
-    
+        if estate == "inicio":
+
+            try:
+                response_arm_dron = Navegacion.client_srv_arm_drone('Arm')
+                rospy.loginfo(response_arm_dron.result)
+                estate = response_arm_dron.result
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de armado ", e)
+
+        elif estate == "Arm_check" :
+           
+            try:
+                response_take_off = Navegacion.client_serv_take_off(10)
+                rospy.loginfo(response_take_off.result)
+                estate = response_take_off.result
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de despegue ", e)
 
 
-
+        elif estate == "Alt_check":
+            
+            time.sleep(5)
+            #Navegacion.goto()
+        
 
 if __name__ == "__main__":
     main()

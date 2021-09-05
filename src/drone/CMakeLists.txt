@@ -57,6 +57,8 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    arm.srv
+   takeoff.srv
+   rot_yaw.srv
  )
 
 ## Generate actions in the 'action' folder

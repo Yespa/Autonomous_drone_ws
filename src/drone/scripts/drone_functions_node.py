@@ -21,7 +21,7 @@ from geometry_msgs.msg import TwistStamped, QuaternionStamped, PointStamped
 from std_msgs.msg import String
 
 #Importamos los servicios
-from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse
+from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse
 
 
 class Node_functions_drone:
@@ -51,11 +51,20 @@ class Node_functions_drone:
 
         #SERVICIOS
 
+        #Servicio para realizar el armado del dron
         self.srv_arm_drone = rospy.Service("drone/srv/arm",arm,self.arm_drone)
 
+        #Servicio para realizar el despegue del dron
         self.srv_take_off = rospy.Service("drone/srv/take_off",takeoff,self.takeoff)
 
+        #Servicio para realizar la rotacion del dron respecto al eje z
         self.srv_rot_yaw = rospy.Service("drone/srv/rot_yaw",rot_yaw,self.condition_yaw)
+
+        #Servicio para realizar enviar velocidades lineales al dron
+        self.srv_vel_lin = rospy.Service("drone/srv/vel_lin",vel_lin,self.Vel_mat_rot_Z)
+
+        #Servicio para realizar el despegue del dron
+        self.srv_land = rospy.Service("drone/srv/land",land,self.aterrizaje)
 
         ##SUBSCRIPTORES
 
@@ -266,8 +275,8 @@ class Node_functions_drone:
 
 
     #Metodo para convertir las velocidades con coordenadas realtivas a velocidad con coordenadas absolutas
-
-    def Vel_mat_rot_Z(self):
+    
+    def Vel_mat_rot_Z(self,request):
 
         grados_act = self.vehicle.heading
 
@@ -279,11 +288,14 @@ class Node_functions_drone:
             coseno = math.cos(math.radians(grados))
             return coseno
 
-        self.VxP = self.Vx*cos(grados_act) - self.Vy*sen(grados_act)
-        self.VyP = self.Vx*sen(grados_act) + self.Vy*cos(grados_act)
-        self.VzP = self.Vz
+        self.VxP = request.Vx*cos(grados_act) - request.Vy*sen(grados_act)
+        self.VyP = request.Vx*sen(grados_act) + request.Vy*cos(grados_act)
+        self.VzP = request.Vz
 
         self.send_ned_velocity(self.VxP,self.VyP,self.VzP,5)
+
+        estatus = "Vel_send"
+        return vel_linResponse(estatus)
 
 
     #Metodo para realizar la rotacion del dron en el eje Z
@@ -334,7 +346,7 @@ class Node_functions_drone:
 
     #Metodo para realizar un aterrizaje controlado.
 
-    def aterrizaje(self):
+    def aterrizaje(self,request):
         #Cambiamos al modo aterrizaje
         
         self.vehicle.mode = VehicleMode("LAND")
@@ -350,6 +362,10 @@ class Node_functions_drone:
                 print("--------Aterrizando-------")
                 break
             time.sleep(1)
+        
+        estatus = "Land_check"
+
+        return landResponse(estatus)
 
 def main():
 
@@ -364,19 +380,13 @@ def main():
 
     while not rospy.is_shutdown():
         
-        #if drone.vehicle.armed == False:
-        
-            #drone.arm_drone('1')
-            #drone.takeoff(10)
-
-
+        #Publicamos la posicion del dron
         drone.publish_pos_gps()
 
-        #drone.condition_yaw()
+        #Publicamos el estado del dron
 
         drone.publish_status_drone()
 
-        #drone.Vel_mat_rot_Z()
 
 
 if __name__ == "__main__":

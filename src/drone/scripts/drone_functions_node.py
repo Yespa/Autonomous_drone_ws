@@ -99,8 +99,6 @@ class Node_functions_drone:
 
         if int(self.heading) in range((int(self.vehicle.heading) - 3),(int(self.vehicle.heading) + 3)):
 
-            print("ENTRE A VEL")
-            print("")
             self.Vel_mat_rot_Z_Aut()
         else:
 
@@ -277,7 +275,6 @@ class Node_functions_drone:
             0, 0, 0, # x, y, z acceleration (not supported yet, ignored in GCS_Mavlink)
             0, 0)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink) 
 
-        # Se envia el comando al dron en un ciclo de 1 Hz
         
         self.vehicle.send_mavlink(msg)
            
@@ -449,7 +446,7 @@ def main():
     drone = Node_functions_drone("127.0.0.1:14550",5760) 
 
     #Periodo de muestreo
-    rospy.Rate(25)
+    rospy.Rate(33)
 
 
     while not rospy.is_shutdown():

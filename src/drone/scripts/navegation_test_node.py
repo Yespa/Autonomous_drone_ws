@@ -116,6 +116,7 @@ class Node_navegation_drone:
 
     #METODO PARA PARA IR A LA COORDENADA INGRESADA.
     def goto(self):
+        
 
         self.latitude_destino = -35.3628609* 10000
         self.longitude_destino = 149.1655353* 10000
@@ -161,9 +162,18 @@ class Node_navegation_drone:
             self.heading = int(self.ang_rotacion)
 
             self.publish_velocity()
+                                 
+    #METODO PARA RESETER VARIABLES
+    def reset(self):
 
-                    
-                   
+        self.vel_lin_x = 0
+        self.Vx = 0
+
+        #Inicializacion de variables para el controlador
+        self.Acum = 0
+        self.Dist_old = 0
+        self.time_old = 0     
+
 
 def main():
 
@@ -171,7 +181,7 @@ def main():
     rospy.init_node('Navegacion')
 
     #Periodo de muestreo
-    rospy.Rate(10)
+    rospy.Rate(33)
 
     Navegacion = Node_navegation_drone()
 
@@ -205,8 +215,9 @@ def main():
 
         elif estate == "Alt_check":
             Navegacion.goto()
-            
+            rospy.sleep(1)
             if Navegacion.dist_recorrer < 0.1:
+                Navegacion.reset()
                 estate = "Pos_check"
             
         elif estate == "Pos_check":

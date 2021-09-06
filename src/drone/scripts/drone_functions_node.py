@@ -97,6 +97,15 @@ class Node_functions_drone:
         self.Vz = Vel_nav.twist.linear.z
         self.heading = Vel_nav.twist.angular.z
 
+        if int(self.heading) in range((int(self.vehicle.heading) - 3),(int(self.vehicle.heading) + 3)):
+
+            print("ENTRE A VEL")
+            print("")
+            self.Vel_mat_rot_Z_Aut()
+        else:
+
+            self.condition_yaw_Aut()
+        
 
     #Metodo para obtener la posicion actual (latitud, longitud y altura)
     def publish_pos_gps(self):
@@ -254,7 +263,7 @@ class Node_functions_drone:
 
     #Metodo para enviar comandos de velocidad a la controladora de vuelo en coordenadas absolutas
 
-                #Script predeterminado de la libreria de Dronekit. Tomado de la API de dronekit
+    #Script predeterminado de la libreria de Dronekit. Tomado de la API de dronekit
 
     def send_ned_velocity(self,velocity_x, velocity_y, velocity_z, duration):
 
@@ -269,13 +278,13 @@ class Node_functions_drone:
             0, 0)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink) 
 
         # Se envia el comando al dron en un ciclo de 1 Hz
-        for x in range(0,duration):
-            self.vehicle.send_mavlink(msg)
-            time.sleep(1)
+        
+        self.vehicle.send_mavlink(msg)
+           
 
-
-    #Metodo para convertir las velocidades con coordenadas realtivas a velocidad con coordenadas absolutas
+    #Metodos para convertir las velocidades con coordenadas realtivas a velocidad con coordenadas absolutas
     
+    #Lo implemento para realizar debug por medio de servicios
     def Vel_mat_rot_Z(self,request):
 
         grados_act = self.vehicle.heading
@@ -292,14 +301,35 @@ class Node_functions_drone:
         self.VyP = request.Vx*sen(grados_act) + request.Vy*cos(grados_act)
         self.VzP = request.Vz
 
-        self.send_ned_velocity(self.VxP,self.VyP,self.VzP,5)
+        self.send_ned_velocity(self.VxP,self.VyP,self.VzP,0.1)
 
         estatus = "Vel_send"
         return vel_linResponse(estatus)
 
+    #Es implementado en el nodo de navegación
+    def Vel_mat_rot_Z_Aut(self):
 
-    #Metodo para realizar la rotacion del dron en el eje Z
+        grados_act = self.vehicle.heading
 
+        def sen(grados):
+            seno = math.sin(math.radians(grados))
+            return seno
+
+        def cos(grados):
+            coseno = math.cos(math.radians(grados))
+            return coseno
+
+        self.VxP = self.Vx*cos(grados_act) - self.Vy*sen(grados_act)
+        self.VyP = self.Vx*sen(grados_act) + self.Vy*cos(grados_act)
+        self.VzP = self.Vz
+
+        self.send_ned_velocity(self.VxP,self.VyP,self.VzP,0.1)
+
+
+
+    #Metodos para realizar la rotacion del dron en el eje Z
+
+    #Lo implemento para hacer debug por medio de servicios
     def condition_yaw(self,request):
 
         relative = False
@@ -331,18 +361,62 @@ class Node_functions_drone:
             #para que la funcion no sea interrumpida por otro comando
 
             if self.vehicle.heading > request.heading:
-                if self.vehicle.heading <= request.heading * 0.95:
+                if self.vehicle.heading <= request.heading * 0.94:
                     print("------Orientacion deseada alcanzada-----")
                     break
                 time.sleep(1)
             else:
-                if self.vehicle.heading >= request.heading * 0.95:
+                if self.vehicle.heading >= request.heading * 0.94:
                     print("------Orientacion deseada alcanzada-----")
                     break
                 time.sleep(1)
 
         estatus = "Rot_yaw_check"       
         return rot_yawResponse(estatus)
+
+
+    #Es implementado por medio de la maquina de estados
+    def condition_yaw_Aut(self):
+
+        relative = False
+
+        if relative:
+            is_relative = 1 #yaw relative to direction of travel
+        else:
+            is_relative = 0 #yaw is an absolute angle
+        # create the CONDITION_YAW command using command_long_encode()
+        msg = self.vehicle.message_factory.command_long_encode(
+            0, 0,    # target system, target component
+            mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
+            0, #confirmation
+            self.heading,    # param 1, yaw in degrees
+            0,          # param 2, yaw speed deg/s
+            1,          # param 3, direction -1 ccw, 1 cw
+            is_relative, # param 4, relative offset 1, absolute angle 0
+            0, 0, 0)    # param 5 ~ 7 not used
+        
+        #Se envia el comando al dron 
+        self.vehicle.send_mavlink(msg)
+
+        
+        while True:
+        
+            print(" Cabeceo actual: ", self.vehicle.heading, " Cabeceo pedido ", self.heading)
+
+            #Nos metemos en un ciclo hasta que se cumpla el valor de ultima posicion del cabeceo
+            #para que la funcion no sea interrumpida por otro comando
+
+            if self.vehicle.heading > self.heading:
+                if self.vehicle.heading <= self.heading * 0.94:
+                    print("------Orientacion deseada alcanzada-----")
+                    break
+                time.sleep(1)
+            else:
+                if self.vehicle.heading >= self.heading * 0.94:
+                    print("------Orientacion deseada alcanzada-----")
+                    break
+                time.sleep(1)
+
 
     #Metodo para realizar un aterrizaje controlado.
 
@@ -382,9 +456,8 @@ def main():
         
         #Publicamos la posicion del dron
         drone.publish_pos_gps()
-
+        
         #Publicamos el estado del dron
-
         drone.publish_status_drone()
 
 

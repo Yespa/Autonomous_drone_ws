@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from os import name
 import rospy
 
 
@@ -16,29 +17,57 @@ from std_msgs.msg import String
 
 
 #Importamos los servicios
-from drone.srv import arm, armResponse, takeoff, takeoffResponse
-
-
+from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse
 
 class Node_navegation_drone:
 
     def __init__(self):
         
+        #Variables de inicializacion 
         self.longitude_now = 0
         self.latitude_now = 0
         self.altitude_now = 0
         self.heading = 0
         self.vel_lin_x = 0
+        
+        #Constates de control
+        self.Kp = 0.77
+        self.Ki = 0
+        self.Kd = 0.01
+        self.Ts = 0.5 #Tiempo de muestreo
+        self.Vx = 0
+
+        #Inicializacion de variables para el controlador
+        self.Acum = 0
+        self.Dist_old = 0
+        self.time_old = 0     
+
         self.rate = rospy.Rate(10)
+        
+        
         
         #CLIENT SERVICES
 
+        #Cliente del servicio de armado
         #Esperamos que el servicio este activo y asignamos el cliente a un objeto
         self.wait_srv_arm_drone = rospy.wait_for_service("drone/srv/arm")
         self.client_srv_arm_drone = rospy.ServiceProxy("drone/srv/arm",arm)
 
+        #Cliente del servicio de despegue
         self.wait_srv_take_off = rospy.wait_for_service("drone/srv/take_off")
-        self.client_serv_take_off = rospy.ServiceProxy("drone/srv/take_off",takeoff)
+        self.client_srv_take_off = rospy.ServiceProxy("drone/srv/take_off",takeoff)
+
+        #Cliente del servicio de rotacion
+        self.wait_srv_rot_yaw = rospy.wait_for_service("drone/srv/rot_yaw")
+        self.client_srv_rot_yaw= rospy.ServiceProxy("drone/srv/rot_yaw",rot_yaw)
+
+        #Cliente para el servicio de velocidad lineal   
+        self.wait_srv_vel_lin = rospy.wait_for_service("drone/srv/vel_lin")
+        self.client_srv_vel_lin= rospy.ServiceProxy("drone/srv/vel_lin",vel_lin)
+
+        #Cliente para el servicio de aterrizaje
+        self.wait_srv_land = rospy.wait_for_service("drone/srv/land")
+        self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land) 
 
         #SUSCRIPTORES
 
@@ -88,66 +117,51 @@ class Node_navegation_drone:
     #METODO PARA PARA IR A LA COORDENADA INGRESADA.
     def goto(self):
 
-        latitude_destino = -35.3632613 * 10000
-        longitude_destino = 149.1654356* 10000
+        self.latitude_destino = -35.3628609* 10000
+        self.longitude_destino = 149.1655353* 10000
 
-        dist_latitude = (latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
-        dist_longitude = (longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
-        dist_recorrer = math.sqrt(((dist_latitude)**2)+((dist_longitude)**2)) #Distancia más corta entre la latitud y longitud variable
+        self.dist_latitude = (self.latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
+        self.dist_longitude = (self.longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
+        self.dist_recorrer = math.sqrt(((self.dist_latitude)**2)+((self.dist_longitude)**2)) #Distancia más corta entre la latitud y longitud variable
 
-        #Constates de control
-        Kp = 1
-        Ki = 1
-        Kd = 1
+        self.ang_rotacion = math.degrees(math.atan2(self.dist_longitude,self.dist_latitude)) #Angulo del punto de destino
 
-        #Inicializacion de variables para el controlador
-        Acum = 0
-        Ts = 0.5 #Tiempo de muestreo
-        Dist_old = 0
-        time_old = 0        
+        #Convertir los angulos negativos a positivos
+        if self.ang_rotacion < 0:
+            self.ang_rotacion = self.ang_rotacion + 360
+    
+        
+        if int(self.ang_rotacion) in range((int(self.angle_now) - 3),(int(self.angle_now) + 3)): #Condicion para enviar velocidades cuando estemos en la orientacion deseada
 
-        while(True):
-   
-            dist_latitude = (latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
-            dist_longitude = (longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
-            dist_recorrer = math.sqrt(((dist_latitude)**2)+((dist_longitude)**2)) #Distancia más corta entre la latitud y longitud variable
+            if time.time() - self.time_old >= self.Ts: #Controlamos el periodo de muestreo
 
-            ang_rotacion = math.degrees(math.atan2(dist_longitude,dist_latitude)) #Angulo del punto de destino
-
-            #Convertir los angulos negativos a positivos
-            if ang_rotacion < 0:
-                ang_rotacion = ang_rotacion + 360 
-            
-            if int(ang_rotacion) in range((int(self.angle_now) - 5),(int(self.angle_now) + 5)): #Condicion para enviar velocidades cuando estemos en la orientacion deseada
-
-                if time.time() - time_old >= Ts: #Controlamos el periodo de muestreo
-
-                    Term_proporcional = dist_recorrer
-                    Term_integrativo = ((dist_recorrer*Ts)-Acum)
-                    Term_derivativo = ((dist_recorrer - Dist_old)/Ts)
-                    
-                    #Ecuacion de controlador PID
-                    Vx = Kp*Term_proporcional + Ki*Term_integrativo + Kd*Term_derivativo
-
-                    #Variables T(k-1)
-                    Acum = Acum + (dist_recorrer*Ts)
-                    Dist_old = dist_recorrer
-                    time_old = time.time()
+                Term_proporcional = self.dist_recorrer
+                Term_integrativo = ((self.dist_recorrer*self.Ts)-self.Acum)
+                Term_derivativo = ((self.dist_recorrer - self.Dist_old)/self.Ts)
                 
-                if Vx>3: #Evito un sobre esfuerzo
-                    self.vel_lin_x = 3
-                elif Vx<0: #Evito valores negativos
-                    self.vel_lin_x = 3
-                else: 
-                    self.vel_lin_x = Vx
+                #Ecuacion de controlador PID
+                self.Vx = self.Kp*Term_proporcional + self.Ki*Term_integrativo + self.Kd*Term_derivativo
 
-                self.publish_velocity()      
-
+                #Variables T(k-1)
+                self.Acum = self.Acum + (self.dist_recorrer*self.Ts)
+                self.Dist_old = self.dist_recorrer
+                self.time_old = time.time()
             
-            else: 
+            if self.Vx>2: #Evito un sobre esfuerzo
+                self.vel_lin_x = 2
+            elif self.Vx<0: #Evito valores negativos
                 self.vel_lin_x = 0
-                self.heading = (ang_rotacion)  
-                self.publish_velocity()      
+            else: 
+                self.vel_lin_x = self.Vx
+            
+            self.publish_velocity()
+        
+        else: 
+            self.vel_lin_x = 0
+            self.heading = int(self.ang_rotacion)
+
+            self.publish_velocity()
+
                     
                    
 
@@ -182,7 +196,7 @@ def main():
         elif estate == "Arm_check" :
            
             try:
-                response_take_off = Navegacion.client_serv_take_off(10)
+                response_take_off = Navegacion.client_srv_take_off(10)
                 rospy.loginfo(response_take_off.result)
                 estate = response_take_off.result
             except rospy.ServiceException as e:
@@ -190,10 +204,26 @@ def main():
 
 
         elif estate == "Alt_check":
+            Navegacion.goto()
             
+            if Navegacion.dist_recorrer < 0.1:
+                estate = "Pos_check"
+            
+        elif estate == "Pos_check":
+
+            try:
+                response_land = Navegacion.client_srv_land("land")
+                rospy.loginfo(response_land.result)
+                estate = response_land.result
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de aterrizaje ", e) 
+
+        elif estate == "Land_check":
             time.sleep(5)
-            #Navegacion.goto()
-        
+            print("-----HE LLEGADO------") ## POR AHORA -- Cambiar
+
+
+
 
 if __name__ == "__main__":
     main()

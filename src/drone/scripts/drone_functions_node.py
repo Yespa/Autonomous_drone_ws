@@ -120,7 +120,7 @@ class Node_functions_drone:
                     if int(self.vehicle.heading) == Ang_problem[i]:
 
                         tol = 1
-
+                        break
                     else:
                         tol = 0
 

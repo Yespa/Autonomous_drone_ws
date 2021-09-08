@@ -118,8 +118,8 @@ class Node_navegation_drone:
     def goto(self):
         
         tol = 0
-        self.latitude_destino = -35.3620009* 10000
-        self.longitude_destino = 149.1652353* 10000
+        self.latitude_destino = -35.3690608* 10000
+        self.longitude_destino = 149.1696351* 10000
 
         self.dist_latitude = (self.latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
         self.dist_longitude = (self.longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
@@ -156,7 +156,7 @@ class Node_navegation_drone:
                     if int(self.angle_now) == Ang_problem[i]:
 
                         tol = 1
-
+                        break
                     else:
                         tol = 0
 
@@ -179,8 +179,8 @@ class Node_navegation_drone:
                 self.Dist_old = self.dist_recorrer
                 self.time_old = time.time()
             
-            if self.Vx>2: #Evito un sobre esfuerzo
-                self.vel_lin_x = 2
+            if self.Vx>3: #Evito un sobre esfuerzo
+                self.vel_lin_x = 3
             elif self.Vx<0: #Evito valores negativos
                 self.vel_lin_x = 0
             else: 
@@ -198,7 +198,8 @@ class Node_navegation_drone:
     def reset(self):
 
         self.vel_lin_x = 0
-        self.Vx = 0
+        
+
 
         #Inicializacion de variables para el controlador
         self.Acum = 0
@@ -239,7 +240,7 @@ def main():
         elif estate == "Arm_check" :
            
             try:
-                response_take_off = Navegacion.client_srv_take_off(10)
+                response_take_off = Navegacion.client_srv_take_off(5)
                 rospy.loginfo(response_take_off.result)
                 estate = response_take_off.result
             except rospy.ServiceException as e:

@@ -198,26 +198,39 @@ class Node_functions_drone:
     #METODO PARA REALIZAR EL ARMADO DE DRON
 
     def arm_drone(self,request):
+        
+        timeout = 60
+        timeout_start = time.time()
+
 
         self.vehicle.mode = VehicleMode("GUIDED")
            
-        while self.vehicle.is_armable==False:
+
+        while self.vehicle.is_armable==False and (time.time() < timeout_start + timeout):
             print("Esperando disponibilidad de armado")
             print("")
             time.sleep(2)
-        print("El dron esta listo para ser armado!")
 
-        print("CUIDADO")
-        time.sleep(3)
 
-        self.vehicle.armed=True  ## Comando para armar el dron
+        if self.vehicle.is_armable==False:
+            estatus = "Arm_fail"
+
+        elif self.vehicle.is_armable == True:
+
+
+            print("El dron esta listo para ser armado!")
+
+            print("CUIDADO")
+            time.sleep(3)
+
+            self.vehicle.armed=True  ## Comando para armar el dron
         
-        while self.vehicle.armed==False:
-            print("Esperando que se arme el dron")
-            time.sleep(1)
-        print("------El dron esta armado!------")
+            while self.vehicle.armed==False:
+                print("Esperando que se arme el dron")
+                time.sleep(1)
+            print("------El dron esta armado!------")
 
-        estatus = 'Arm_check'
+            estatus = 'Arm_check'
 
         return armResponse(estatus)
 
@@ -258,8 +271,7 @@ class Node_functions_drone:
 
         return takeoffResponse(estatus)
 
-
-    #Metodo para enviar comandos de velocidad a la controladora de vuelo en coordenadas absolutas
+    #METODO PARA ENVIAR COMANDOS DE VELOCIDAD A LA CONTROLADORA DE VUELO EN COORDENAS ABSOLUTAS
 
     #Script predeterminado de la libreria de Dronekit. Tomado de la API de dronekit
 
@@ -279,7 +291,7 @@ class Node_functions_drone:
         self.vehicle.send_mavlink(msg)
            
 
-    #Metodos para convertir las velocidades con coordenadas realtivas a velocidad con coordenadas absolutas
+    #METODO PARA CONVERTIR LAS VELOCIDADES CON COORDENADAS RELATIVAS A VELOCIDAD CON COORDENADAS ABSOLUTAS
     
     #Lo implemento para realizar debug por medio de servicios
     def Vel_mat_rot_Z(self,request):
@@ -324,7 +336,7 @@ class Node_functions_drone:
 
 
 
-    #Metodos para realizar la rotacion del dron en el eje Z
+    #METODO PARA REALIZAR LA ROTACIÓN DEL DRON EN EL EJE Z
 
     #Lo implemento para hacer debug por medio de servicios
     def condition_yaw(self,request):
@@ -415,7 +427,7 @@ class Node_functions_drone:
                 time.sleep(1)
 
 
-    #Metodo para realizar un aterrizaje controlado.
+    #METODO PARA REALIZAR UN ATERRIZAJE CONTROLADO.
 
     def aterrizaje(self,request):
         #Cambiamos al modo aterrizaje

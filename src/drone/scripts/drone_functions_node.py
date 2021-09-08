@@ -4,12 +4,12 @@
 
 import rospy
 
-#Librerias que permiten la comunicacion con la tarjeta de control de vuelo, Pixhawk 2.4.8
+#Libraries that allow communication with the flight control board, Pixhawk 2.4.8
 
 from dronekit import connect, VehicleMode, LocationGlobalRelative
-from pymavlink import mavutil ## Libreria usada para definir los mensajes de comando
+from pymavlink import mavutil # Library used to define the command messages
 
-#Importaciones generales
+#General imports
 import time
 import socket
 import math
@@ -20,18 +20,15 @@ from sensor_msgs.msg import NavSatFix, BatteryState
 from geometry_msgs.msg import TwistStamped, QuaternionStamped, PointStamped
 from std_msgs.msg import String
 
-#Importamos los servicios
+#Importing services
 from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse
 
 
 class Node_functions_drone:
 
     """
-    Nodo que permite la interaccion con el drone
-    
-    Por medio de suscriptores de haran modificaciones en velocidades lineales, velocidades angulares en todos
-    los ejes y mediante publicadores se enviaran datos de los sensores de la tarjeta controladora tales como
-    GPS, datos de odometría, estado de la IMU, estado de dron...    
+    Node that allows executing actions on the drone, such as take-off, landing, speed variations, speed monitoring, 
+    position monitoring of speed, position, IMU  
     """
 
     def __init__(self,connection_string,baud_rate):
@@ -41,55 +38,56 @@ class Node_functions_drone:
         self.Vz = 0
         self.heading = 0
         
-        ##Realizar la conexion entre la Pixhawk y la Jetson nano
+        #Make the connection between the Pixhawk and the Jetson nano
         self.connection_string = connection_string
         self.baud_rate = baud_rate
 
         self.vehicle = connect(self.connection_string,self.baud_rate,wait_ready=True)
 
-        print("--------------CONEXION EXITOSA-------------------")
+        print("--------------SUCCESSFUL CONNECTION------------------")
 
-        #SERVICIOS
+        #SERVICES
 
-        #Servicio para realizar el armado del dron
+        #Service to ARM the drone
         self.srv_arm_drone = rospy.Service("drone/srv/arm",arm,self.arm_drone)
 
-        #Servicio para realizar el despegue del dron
+        #Service to perform the drone take-off
         self.srv_take_off = rospy.Service("drone/srv/take_off",takeoff,self.takeoff)
 
-        #Servicio para realizar la rotacion del dron respecto al eje z
+        #Service to perform the rotation of the drone with respect to the z-axis
         self.srv_rot_yaw = rospy.Service("drone/srv/rot_yaw",rot_yaw,self.condition_yaw)
 
-        #Servicio para realizar enviar velocidades lineales al dron
+        #Service for sending linear velocities to the drone
         self.srv_vel_lin = rospy.Service("drone/srv/vel_lin",vel_lin,self.Vel_mat_rot_Z)
 
-        #Servicio para realizar el despegue del dron
+        #Drone landing service
         self.srv_land = rospy.Service("drone/srv/land",land,self.aterrizaje)
 
-        ##SUBSCRIPTORES
+        #SUBSCRIBERS
 
+        #Subscriber at the rate sent from the navigation node
         self.sub_vel_nav = rospy.Subscriber('Nav/vel_lin',TwistStamped,self.update_velocity)
 
-        #PUBLICADORES
+        #PUBLISHERS
 
-        #Publicador de la coordenadas globales actuales de dron
+        #Publisher of the current global coordinates of drone
         self.pub_pos_gps = rospy.Publisher('drone/pos_gps',NavSatFix,queue_size=10)
 
-        #Publicador de la velocidad lineal actual del dron
+        #Publisher of the current linear velocity of the drone
         self.pub_vel_now = rospy.Publisher('drone/vel_now',TwistStamped,queue_size=10)
 
-        #Publicador del angulo de orientacion del dron con respecto al norte de la tierra.
+        #Publisher of the angle of orientation of the drone with respect to the north of the earth.
         self.pub_orient_angle_z_now = rospy.Publisher('drone/orient_angle_z_now', PointStamped, queue_size=10)
 
-        #Publicador del estado de la bateria actual del dron
+        #Publisher of the current drone battery status
         self.pub_battery_now = rospy.Publisher('drone/battery_now', BatteryState, queue_size=10)
 
-        #Publicador de la actitud actual del dron
+        #Publisher of the current drone attitude
         self.pub_orientacion_quaternion = rospy.Publisher('drone/orient_quaternion',QuaternionStamped, queue_size=10)
 
-    #METODOS
+    #METHODS
 
-    #Metodo para actualizar la velocidad entregada por el nodo de navegación
+    #Method for updating the speed delivered by the navigation node
 
     def update_velocity(self,Vel_nav):
         self.Vx = Vel_nav.twist.linear.x
@@ -97,7 +95,38 @@ class Node_functions_drone:
         self.Vz = Vel_nav.twist.linear.z
         self.heading = Vel_nav.twist.angular.z
 
-        if int(self.heading) in range((int(self.vehicle.heading) - 3),(int(self.vehicle.heading) + 3)):
+        tol = 0
+        #Tolerancia entre los datos que estan entre 357 a 3 grados
+        if self.heading in range(357,361) or self.heading in range(0,4):
+
+            Ang_problem = [357,358,359,360,0,1,2,3]
+
+            if self.heading in Ang_problem:
+
+                pos = Ang_problem.index(self.heading)
+
+                infpos = pos - 3
+
+                if infpos < 0:
+                    infpos = 0
+
+                suppos = pos + 3
+
+                if suppos > len(Ang_problem):
+                    suppos = len(Ang_problem)
+
+
+                for i in range(infpos,suppos):
+                    if int(self.vehicle.heading) == Ang_problem[i]:
+
+                        tol = 1
+
+                    else:
+                        tol = 0
+
+
+
+        if int(self.heading) in range((int(self.vehicle.heading) - 3),(int(self.vehicle.heading) + 3)) or tol==1:
 
             self.Vel_mat_rot_Z_Aut()
         else:
@@ -105,7 +134,7 @@ class Node_functions_drone:
             self.condition_yaw_Aut()
         
 
-    #Metodo para obtener la posicion actual (latitud, longitud y altura)
+    #Method to obtain current position (latitude, longitude and altitude)
     def publish_pos_gps(self):
 
         #Este mensaje tiene una estructura especial es por ellos que se formula de la siguiente manera
@@ -127,7 +156,7 @@ class Node_functions_drone:
         #Publico la informacion
         self.pub_pos_gps.publish(msg)
 
-    #Metodo para publicar variables generales de los sensores del dron
+    #Method to publish general variables of the drone's sensors.
     def publish_status_drone(self):
 
         #Se solicita la información a la pixhawk
@@ -195,7 +224,7 @@ class Node_functions_drone:
         self.pub_orientacion_quaternion.publish(attitud_now)
 
 
-    #METODO PARA REALIZAR EL ARMADO DE DRON
+    #METHOD FOR THE ARMING OF DRONE
 
     def arm_drone(self,request):
         
@@ -235,7 +264,7 @@ class Node_functions_drone:
         return armResponse(estatus)
 
 
-    #METODO PARA REALIZAR EL DESPEGUE
+    #METHOD FOR TAKE-OFF
     
     def takeoff(self,request):
         
@@ -243,7 +272,7 @@ class Node_functions_drone:
 
             ######### Enviamos accion de despegue ##########
             time.sleep(2)
-            print("------Despegando-------")
+            print("------Taking off-------")
 
             self.vehicle.simple_takeoff(request.alt_deseada)        
 
@@ -252,13 +281,13 @@ class Node_functions_drone:
 
             
             while True:
-                print(" Altura actual: ", self.vehicle.location.global_relative_frame.alt)
+                print(" Current height: ", self.vehicle.location.global_relative_frame.alt)
 
                 #Verificamos que no exceda la altura deseada, cuando se cumple salimos de la funcion
 
                 if self.vehicle.location.global_relative_frame.alt >= request.alt_deseada * 0.95:
                     print("")
-                    print("------Altura deseada alcanzada-----")
+                    print("------Desired height achieved-----")
                     break
                 time.sleep(1)
             
@@ -271,9 +300,9 @@ class Node_functions_drone:
 
         return takeoffResponse(estatus)
 
-    #METODO PARA ENVIAR COMANDOS DE VELOCIDAD A LA CONTROLADORA DE VUELO EN COORDENAS ABSOLUTAS
+    #METHOD FOR SENDING SPEED COMMANDS TO THE FLIGHT CONTROLLER IN ABSOLUTE COORDINATES
 
-    #Script predeterminado de la libreria de Dronekit. Tomado de la API de dronekit
+    #Default Dronekit library script. Taken from the dronekit API
 
     def send_ned_velocity(self,velocity_x, velocity_y, velocity_z, duration):
 
@@ -291,9 +320,9 @@ class Node_functions_drone:
         self.vehicle.send_mavlink(msg)
            
 
-    #METODO PARA CONVERTIR LAS VELOCIDADES CON COORDENADAS RELATIVAS A VELOCIDAD CON COORDENADAS ABSOLUTAS
+    #METHOD FOR CONVERTING VELOCITIES WITH RELATIVE COORDINATES TO VELOCITIES WITH ABSOLUTE COORDINATES
     
-    #Lo implemento para realizar debug por medio de servicios
+    #I implement it to perform debugging by means of services.
     def Vel_mat_rot_Z(self,request):
 
         grados_act = self.vehicle.heading
@@ -315,7 +344,7 @@ class Node_functions_drone:
         estatus = "Vel_send"
         return vel_linResponse(estatus)
 
-    #Es implementado en el nodo de navegación
+    #It is implemented in the navigation node
     def Vel_mat_rot_Z_Aut(self):
 
         grados_act = self.vehicle.heading
@@ -336,9 +365,9 @@ class Node_functions_drone:
 
 
 
-    #METODO PARA REALIZAR LA ROTACIÓN DEL DRON EN EL EJE Z
+    #METHOD TO REALIZE THE ROTATION OF THE DRONE IN THE Z-AXIS
 
-    #Lo implemento para hacer debug por medio de servicios
+    #I implement it to debug by means of services.
     def condition_yaw(self,request):
 
         relative = False
@@ -364,19 +393,19 @@ class Node_functions_drone:
         
         while True:
         
-            print(" Cabeceo actual: ", self.vehicle.heading)
+            print(" Current orientation ", self.vehicle.heading, "- Orientation request: ", self.heading)
 
             #Nos metemos en un ciclo hasta que se cumpla el valor de ultima posicion del cabeceo
             #para que la funcion no sea interrumpida por otro comando
 
             if self.vehicle.heading > request.heading:
                 if self.vehicle.heading <= request.heading * 0.94:
-                    print("------Orientacion deseada alcanzada-----")
+                    print("------Desired orientation achieved-----")
                     break
                 time.sleep(1)
             else:
                 if self.vehicle.heading >= request.heading * 0.94:
-                    print("------Orientacion deseada alcanzada-----")
+                    print("------Desired orientation achieved-----")
                     break
                 time.sleep(1)
 
@@ -384,7 +413,7 @@ class Node_functions_drone:
         return rot_yawResponse(estatus)
 
 
-    #Es implementado por medio de la maquina de estados
+    #It is implemented by means of the state machine.
     def condition_yaw_Aut(self):
 
         relative = False
@@ -410,63 +439,65 @@ class Node_functions_drone:
         
         while True:
         
-            print(" Cabeceo actual: ", self.vehicle.heading, " Cabeceo pedido ", self.heading)
+            print("Current orientation: ", self.vehicle.heading, "- Orientation request: ", self.heading)
 
             #Nos metemos en un ciclo hasta que se cumpla el valor de ultima posicion del cabeceo
             #para que la funcion no sea interrumpida por otro comando
 
             if self.vehicle.heading > self.heading:
                 if self.vehicle.heading <= self.heading * 0.94:
-                    print("------Orientacion deseada alcanzada-----")
+                    print("------Desired orientation achieved------")
                     break
                 time.sleep(1)
             else:
                 if self.vehicle.heading >= self.heading * 0.94:
-                    print("------Orientacion deseada alcanzada-----")
+                    print("------Desired orientation achieved------")
                     break
                 time.sleep(1)
 
 
-    #METODO PARA REALIZAR UN ATERRIZAJE CONTROLADO.
+    #METHOD TO PERFORM A CONTROLLED LANDING.
 
     def aterrizaje(self,request):
-        #Cambiamos al modo aterrizaje
+       #Switch to landing mode
         
         self.vehicle.mode = VehicleMode("LAND")
 
-        print("Aterrizando")
+        print("-------Landing-------")
 
         while True:
-            print(" Altura actual: ", self.vehicle.location.global_relative_frame.alt)
+            print(" Current height: ", self.vehicle.location.global_relative_frame.alt)
 
-            #Verificamos que se mantenga exceda la altura deseada, cuando se cumple salimos de la funcion
+            ##We verify that the desired height is exceeded, when it is fulfilled we exit the function.
 
             if self.vehicle.location.global_relative_frame.alt <= 1 * 0.95:
-                print("--------Aterrizando-------")
+                print("--------Landing-------")
                 break
             time.sleep(1)
         
+        print("---------Landed----------")
+
         estatus = "Land_check"
 
         return landResponse(estatus)
 
 def main():
 
-    print("Nodo inicializado........")
+    print("---------- Initialized node -------")
     rospy.init_node('drone')
 
     drone = Node_functions_drone("127.0.0.1:14550",5760) 
 
-    #Periodo de muestreo
+    #Sampling period
     rospy.Rate(33)
 
 
     while not rospy.is_shutdown():
         
-        #Publicamos la posicion del dron
+        #We publish the position of the drone
         drone.publish_pos_gps()
         
-        #Publicamos el estado del dron
+        #We publish the status of the drone
         drone.publish_status_drone()
 
 

@@ -117,22 +117,53 @@ class Node_navegation_drone:
     #METODO PARA PARA IR A LA COORDENADA INGRESADA.
     def goto(self):
         
-
-        self.latitude_destino = -35.3628609* 10000
-        self.longitude_destino = 149.1655353* 10000
+        tol = 0
+        self.latitude_destino = -35.3620009* 10000
+        self.longitude_destino = 149.1652353* 10000
 
         self.dist_latitude = (self.latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
         self.dist_longitude = (self.longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
         self.dist_recorrer = math.sqrt(((self.dist_latitude)**2)+((self.dist_longitude)**2)) #Distancia más corta entre la latitud y longitud variable
 
-        self.ang_rotacion = math.degrees(math.atan2(self.dist_longitude,self.dist_latitude)) #Angulo del punto de destino
+        self.ang_rotacion = int(math.degrees(math.atan2(self.dist_longitude,self.dist_latitude))) #Angulo del punto de destino
 
         #Convertir los angulos negativos a positivos
         if self.ang_rotacion < 0:
             self.ang_rotacion = self.ang_rotacion + 360
     
-        
-        if int(self.ang_rotacion) in range((int(self.angle_now) - 3),(int(self.angle_now) + 3)): #Condicion para enviar velocidades cuando estemos en la orientacion deseada
+
+        #Tolerancia entre los datos que estan entre 357 a 3 grados
+        if self.ang_rotacion in range(357,361) or self.ang_rotacion in range(0,4):
+
+            Ang_problem = [357,358,359,360,0,1,2,3]
+
+            if self.ang_rotacion in Ang_problem:
+
+                pos = Ang_problem.index(self.ang_rotacion)
+
+                infpos = pos - 3
+
+                if infpos < 0:
+                    infpos = 0
+
+                suppos = pos + 3
+
+                if suppos > len(Ang_problem):
+                    suppos = len(Ang_problem)
+
+
+                for i in range(infpos,suppos):
+                    if int(self.angle_now) == Ang_problem[i]:
+
+                        tol = 1
+
+                    else:
+                        tol = 0
+
+
+
+
+        if int(self.ang_rotacion) in range((int(self.angle_now) - 3),(int(self.angle_now) + 3)) or tol==1: #Condicion para enviar velocidades cuando estemos en la orientacion deseada
 
             if time.time() - self.time_old >= self.Ts: #Controlamos el periodo de muestreo
 
@@ -159,7 +190,7 @@ class Node_navegation_drone:
         
         else: 
             self.vel_lin_x = 0
-            self.heading = int(self.ang_rotacion)
+            self.heading = (self.ang_rotacion)
 
             self.publish_velocity()
                                  
@@ -186,6 +217,8 @@ def main():
     Navegacion = Node_navegation_drone()
 
     estate = "inicio"
+
+    flag = 1
 
     time.sleep(5)
 
@@ -214,6 +247,15 @@ def main():
 
 
         elif estate == "Alt_check":
+
+            if flag == 1: #Flag provisional para el error del simulador"
+                flag = 0
+                try:
+                    response_vel_lin= Navegacion.client_srv_vel_lin(0.1,0,0)
+                    rospy.loginfo(response_vel_lin.result)
+                except rospy.ServiceException as e:
+                    print("Falla en el servicio de aterrizaje ", e) 
+
             Navegacion.goto()
             rospy.sleep(1)
             if Navegacion.dist_recorrer < 0.1:

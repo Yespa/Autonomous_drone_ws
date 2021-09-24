@@ -41,9 +41,16 @@ class Node_navegation_drone:
         self.Ts = 0.5 #Tiempo de muestreo
         self.Vx = 0
 
+        self.Kp_avoid = 0.5
+        self.Ki_avoid = 0
+        self.Kd_avoid = 0.28
+        self.Vy = 0
+
         #Inicializacion de variables para el controlador
         self.Acum = 0
         self.Dist_old = 0
+        self.Acum_avoid = 0
+        self.error_old = 0
         self.time_old = 0     
 
         self.rate = rospy.Rate(10)
@@ -100,7 +107,7 @@ class Node_navegation_drone:
         vel_drone.header.stamp = rospy.Time.now()
         vel_drone.header.frame_id = "Nav/Velocidades"
         vel_drone.twist.linear.x = self.vel_lin_x
-        vel_drone.twist.linear.y = 0
+        vel_drone.twist.linear.y = self.vel_lin_y
         vel_drone.twist.linear.z = 0
         vel_drone.twist.angular.x = 0
         vel_drone.twist.angular.y = 0
@@ -189,16 +196,65 @@ class Node_navegation_drone:
                 self.vel_lin_x = 0
             else: 
                 self.vel_lin_x = self.Vx
-            
+            self.vel_lin_y = 0
             self.publish_velocity()
         
         else: 
             self.vel_lin_x = 0
+            self.vel_lin_y = 0
             self.heading = (self.ang_rotacion)
 
             self.publish_velocity()
+
+
+    #METODO PARA EVADIR OBSTACULOS.
+    def AvoidObstacle(self,d1,d2,d3,d4,d5,d6,d7,d8,d9):
+              
+        self.setpoint = (90000*9)**2
+        self.dist_med = (d1**2+d2**2+d3**2+d4**2+d5**2+d6**2+d7**2+d8**2+d9**2)
+
+        self.error_avoid = self.setpoint - self.dist_med
+        
+        self.center = d2**2 + d5**2 + d7**2
+        self.lateral_izquierdo = d1**2 + d4**2 + d6**2 + self.center
+        self.lateral_derecho = d3**2 + d6**2 + d9**2 + self.center
+
+
+        if time.time() - self.time_old >= self.Ts: #Controlamos el periodo de muestreo
+
+            Term_proporcional = self.error_avoid
+            Term_integrativo = ((self.error_avoid*self.Ts)-self.Acum_avoid)
+            Term_derivativo = ((self.error_avoid - self.error_old)/self.Ts)
+            
+            #Ecuacion de controlador PID
+            self.Vy = self.Kp_avoid*Term_proporcional + self.Ki_avoid*Term_integrativo + self.Kd_avoid*Term_derivativo
+
+            #Variables T(k-1)
+            self.Acum_avoid = self.Acum_avoid + (self.error_avoid*self.Ts)
+            self.error_old = self.error_avoid
+            self.time_old = time.time()
+        
+        if self.Vy>2: #Evito un sobre esfuerzo
+            self.vel_lin_y = 2
+        elif self.Vy<0: #Evito valores negativos
+            self.vel_lin_y = 0
+        else: 
+            self.vel_lin_y = self.Vy
+
+        if self.lateral_derecho < self.lateral_izquierdo:
+            self.vel_lin_y = -self.vel_lin_y
+            
+        elif self.lateral_izquierdo < self.lateral_derecho:
+            self.vel_lin_y = -self.vel_lin_y
+
+                
+        self.publish_velocity()
+
+
+
+
                                  
-    #METODO PARA RESETER VARIABLES
+    #METODO PARA RESETEAR VARIABLES
     def reset(self):
 
         self.vel_lin_x = 0
@@ -351,20 +407,9 @@ def main():
             DetectObstacle = True
         else:
             DetectObstacle = False
-        
-        sum_zone1 = 0
-        sum_zone2 = 0
-        sum_zone3 = 0
-        sum_zone4 = 0
-        sum_zone5 = 0
-        sum_zone6 = 0
-        sum_zone7 = 0
-        sum_zone8 = 0
-        sum_zone9 = 0
-        
+            
 
-        ###### Finite State Machine
-     
+        ## Finite State Machine
 
         if estate == "inicio":
 
@@ -406,6 +451,7 @@ def main():
             elif DetectObstacle:
                 Navegacion.reset()
                 print("EVADIR EVADIR")
+                Navegacion.AvoidObstacle(dist_zone1,dist_zone2,dist_zone3,dist_zone4,dist_zone5,dist_zone6,dist_zone7,dist_zone8,dist_zone9)
 
 
             
@@ -423,6 +469,15 @@ def main():
             print("-----HE LLEGADO------") ## POR AHORA -- Cambiar
 
 
+        sum_zone1 = 0
+        sum_zone2 = 0
+        sum_zone3 = 0
+        sum_zone4 = 0
+        sum_zone5 = 0
+        sum_zone6 = 0
+        sum_zone7 = 0
+        sum_zone8 = 0
+        sum_zone9 = 0
 
 
 

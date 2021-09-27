@@ -42,14 +42,14 @@ class Node_navegation_drone:
         self.Kd = 0.01
         self.Vx = 0
 
-        self.Kp_avoidVy = 0.5
+        self.Kp_avoidVy = 0.9
         self.Ki_avoidVy = 0
-        self.Kd_avoidVy = 0.28
+        self.Kd_avoidVy = 0.08
         self.Vy = 0
 
-        self.Kp_avoidVz = 0.5
+        self.Kp_avoidVz = 0.4
         self.Ki_avoidVz = 0
-        self.Kd_avoidVz = 0.28
+        self.Kd_avoidVz = 0.08
         self.Vz = 0
 
         self.Ts = 0.5 #Tiempo de muestreo
@@ -64,7 +64,6 @@ class Node_navegation_drone:
         self.time_old = 0     
 
         self.rate = rospy.Rate(10)
-        
         
         
         #CLIENT SERVICES
@@ -104,8 +103,6 @@ class Node_navegation_drone:
         #Publicador de la velocidad calculado para el dron
         self.pub_vel_nav = rospy.Publisher('Nav/vel_lin',TwistStamped,queue_size=10)
 
-
-
     #Metodo para publicar la velocidad del dron
     def publish_velocity(self):
 
@@ -139,8 +136,9 @@ class Node_navegation_drone:
     def goto(self):
         
         tol = 0
-        self.latitude_destino = -35.3530008* 10000
-        self.longitude_destino = 149.1650351* 10000
+
+        #self.latitude_destino = -35.3530008* 10000
+        #self.longitude_destino = 149.1650351* 10000
 
         self.dist_latitude = (self.latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
         self.dist_longitude = (self.longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
@@ -180,8 +178,6 @@ class Node_navegation_drone:
                         break
                     else:
                         tol = 0
-
-
 
 
         if int(self.ang_rotacion) in range((int(self.angle_now) - 3),(int(self.angle_now) + 3)) or tol==1: #Condicion para enviar velocidades cuando estemos en la orientacion deseada
@@ -259,7 +255,8 @@ class Node_navegation_drone:
 
             if self.Orient_Vy < 0:
                 self.Vy = -self.Vy
-             
+                
+
             #Ecuacion de controlador PID
             self.Vz = self.Kp_avoidVz*Term_proporcional + self.Ki_avoidVz*Term_integrativo + self.Kd_avoidVz*Term_derivativo
             
@@ -401,45 +398,35 @@ def main():
                 point = (i, j)
                 sum_zone2 =  sum_zone2 + depth_frame[point[1], point[0]]
 
-
         for i in iter(range(426,640)):
             for j in iter(range(160)):
                 point = (i, j)
                 sum_zone3 =  sum_zone3 + depth_frame[point[1], point[0]]
-
-
 
         for i in iter(range(213)):
             for j in iter(range(160,320)):
                 point = (i, j)
                 sum_zone4 =  sum_zone4 + depth_frame[point[1], point[0]]
 
-        
-
         for i in iter(range(213,426)):
             for j in iter(range(160,320)):
                 point = (i, j)
                 sum_zone5 =  sum_zone5 + depth_frame[point[1], point[0]]
-
 
         for i in iter(range(426,640)):
             for j in iter(range(160,320)):
                 point = (i, j)
                 sum_zone6 =  sum_zone6 + depth_frame[point[1], point[0]]
             
-
         for i in iter(range(213)):
             for j in iter(range(320,480)):
                 point = (i, j)
                 sum_zone7 =  sum_zone7 + depth_frame[point[1], point[0]]
 
-        
-
         for i in iter(range(213,426)):
             for j in iter(range(320,480)):
                 point = (i, j)
                 sum_zone8 =  sum_zone8 + depth_frame[point[1], point[0]]
-
 
         for i in iter(range(426,640)):
             for j in iter(range(320,480)):
@@ -457,7 +444,8 @@ def main():
         dist_zone8 = sum_zone8/34080
         dist_zone9 = sum_zone9/34080
 
-        if dist_zone1 < 500 or dist_zone2 < 500 or dist_zone3 < 500 or dist_zone4 < 500 or dist_zone5 < 500 or dist_zone6 < 500 or dist_zone7 < 500 or dist_zone8 < 500 or dist_zone9 < 500:
+        limite = 1000
+        if dist_zone1 < limite or dist_zone2 < limite or dist_zone3 < limite or dist_zone4 < limite or dist_zone5 < limite or dist_zone6 < limite or dist_zone7 < limite or dist_zone8 < limite or dist_zone9 < limite:
             DetectObstacle = True
         else:
             DetectObstacle = False
@@ -467,6 +455,11 @@ def main():
 
         if estate == "inicio":
 
+            print("Ingrese la latitud de destino")
+            Navegacion.latitude_destino = input()*10000
+            print("Ingrese la longitud de destino")
+            Navegacion.longitude_destino = input()*10000
+            
             try:
                 response_arm_dron = Navegacion.client_srv_arm_drone('Arm')
                 rospy.loginfo(response_arm_dron.result)
@@ -495,7 +488,10 @@ def main():
                     print("Falla en el servicio de aterrizaje ", e) 
 
             if DetectObstacle==False:
+                
                 Navegacion.goto()
+
+
                 rospy.sleep(1)
 
                 if Navegacion.dist_recorrer < 0.1:
@@ -519,10 +515,14 @@ def main():
                 print("Falla en el servicio de aterrizaje ", e) 
 
         elif estate == "Land_check":
-            time.sleep(5)
-            print("-----HE LLEGADO------") ## POR AHORA -- Cambiar
+            print("Se realizará un nuevo vuelo? S o N")
+            respuesta = input()
 
-
+            if respuesta == "S":
+                state = inicio
+            elif respuesta == "N":
+                print("FINAL")
+            
         sum_zone1 = 0
         sum_zone2 = 0
         sum_zone3 = 0

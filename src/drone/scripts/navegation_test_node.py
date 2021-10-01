@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from os import name
+#from os import name
 import rospy
 
 
@@ -17,7 +17,7 @@ import numpy as np
 
 from sensor_msgs.msg import NavSatFix, BatteryState
 from geometry_msgs.msg import TwistStamped, QuaternionStamped, PointStamped
-from std_msgs.msg import String
+from std_msgs.msg import Float64MultiArray
 
 
 #Importamos los servicios
@@ -97,6 +97,8 @@ class Node_navegation_drone:
         #Suscriptor del cabeceo actual del drone
         self.sub_orient_angle_z_now = rospy.Subscriber('drone/orient_angle_z_now', PointStamped, self.update_angle_z)
 
+        #Suscriptor a distancias medidas por la depth camera
+        self.sub_depth_distances = rospy.Subscriber('depth_camera/distances', Float64MultiArray, self.update_depth_distances)
 
         #PUBLICADORES
 
@@ -131,14 +133,26 @@ class Node_navegation_drone:
     def update_angle_z(self,point_ang_z):
         self.angle_now = point_ang_z.point.z
 
+    #METODO PARA ACTUALIZAR LAS DISTANCIAS MEDIDAS POR LA CAMARA DE PROFUNDIDAD
+    def update_depth_distances(self,array_distances):
+
+        self.d1 = array_distances.data[0]
+        self.d2 = array_distances.data[1]
+        self.d3 = array_distances.data[2]
+        self.d4 = array_distances.data[3]
+        self.d5 = array_distances.data[4]
+        self.d6 = array_distances.data[5]
+        self.d7 = array_distances.data[6]
+        self.d8 = array_distances.data[7]
+        self.d9 = array_distances.data[8]
 
     #METODO PARA PARA IR A LA COORDENADA INGRESADA.
     def goto(self):
         
         tol = 0
 
-        #self.latitude_destino = -35.3530008* 10000
-        #self.longitude_destino = 149.1650351* 10000
+        self.latitude_destino = -35.3530008* 10000
+        self.longitude_destino = 149.1650351* 10000
 
         self.dist_latitude = (self.latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
         self.dist_longitude = (self.longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
@@ -216,23 +230,23 @@ class Node_navegation_drone:
 
 
     #METODO PARA EVADIR OBSTACULOS.
-    def AvoidObstacle(self,d1,d2,d3,d4,d5,d6,d7,d8,d9):
+    def AvoidObstacle(self):
               
         self.setpoint = (144000000)
-        self.dist_med = (d1**2+d2**2+d3**2+d4**2+d5**2+d6**2+d7**2+d8**2+d9**2)
+        self.dist_med = (self.d1**2+self.d2**2+self.d3**2+self.d4**2+self.d5**2+self.d6**2+self.d7**2+self.d8**2+self.d9**2)
 
         self.error_avoid = self.setpoint - self.dist_med
         print(self.error_avoid)
         
-        self.center = d2**2 + d5**2 + d7**2
+        self.center = self.d2**2 + self.d5**2 + self.d7**2
 
-        self.lateral_izquierdo = d1**2 + d4**2 + d6**2 + self.center
+        self.lateral_izquierdo = self.d1**2 + self.d4**2 + self.d6**2 + self.center
 
-        self.lateral_derecho = d3**2 + d6**2 + d9**2 + self.center
+        self.lateral_derecho = self.d3**2 + self.d6**2 + self.d9**2 + self.center
 
-        self.franja_superior = d1**2 + d2**2 + d3**2 + self.center
+        self.franja_superior = self.d1**2 + self.d2**2 + self.d3**2 + self.center
 
-        self.franja_inferior = d7**2 + d8**2 + d9**2 + self.center
+        self.franja_inferior = self.d7**2 + self.d8**2 + self.d9**2 + self.center
 
         
         self.Orient_Vy = self.lateral_derecho - self.lateral_izquierdo
@@ -317,45 +331,6 @@ class Node_navegation_drone:
 
         self.time_old = 0   
 
-class DepthCamera:
-    def __init__(self):
-        # Configure depth and color streams
-        self.pipeline = rs.pipeline()
-        config = rs.config()
-
-        # Get device product line for setting a supporting resolution
-        pipeline_wrapper = rs.pipeline_wrapper(self.pipeline)
-        pipeline_profile = config.resolve(pipeline_wrapper)
-        device = pipeline_profile.get_device()
-        device_product_line = str(device.get_info(rs.camera_info.product_line))
-
-        config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-
-
-        # Start streaming
-        self.pipeline.start(config)
-
-    def get_frame(self):
-        frames = self.pipeline.wait_for_frames()
-
-        align = rs.align(rs.stream.color)
-        frames = align.process(frames)
-
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
-
-        depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
-        if not depth_frame or not color_frame:
-            return False, None, None
-        return True, depth_image, color_image
-
-    def release(self):
-        self.pipeline.stop()
-
-dc = DepthCamera()
-
 def main():
 
     print("Nodo inicializado........")
@@ -370,14 +345,6 @@ def main():
 
     flag = 1
 
-    # Initialize Camera Intel Realsense
-
-    sum_zone1 = 0;sum_zone2 = 0;sum_zone3 = 0;sum_zone4 = 0
-    sum_zone5 = 0;sum_zone6 = 0;sum_zone7 = 0;sum_zone8 = 0
-    sum_zone9 = 0
-
-    dist_lim = 500
-
     time.sleep(2)
 
     print(" ")
@@ -386,66 +353,8 @@ def main():
     while not rospy.is_shutdown():
 
 
-        ret, depth_frame, color_frame = dc.get_frame()
-       
-        for i in iter(range(213)):
-            for j in iter(range(160)):
-                point = (i, j)
-                sum_zone1 =  sum_zone1 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(213,426)):
-            for j in iter(range(160)):
-                point = (i, j)
-                sum_zone2 =  sum_zone2 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(426,640)):
-            for j in iter(range(160)):
-                point = (i, j)
-                sum_zone3 =  sum_zone3 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(213)):
-            for j in iter(range(160,320)):
-                point = (i, j)
-                sum_zone4 =  sum_zone4 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(213,426)):
-            for j in iter(range(160,320)):
-                point = (i, j)
-                sum_zone5 =  sum_zone5 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(426,640)):
-            for j in iter(range(160,320)):
-                point = (i, j)
-                sum_zone6 =  sum_zone6 + depth_frame[point[1], point[0]]
-            
-        for i in iter(range(213)):
-            for j in iter(range(320,480)):
-                point = (i, j)
-                sum_zone7 =  sum_zone7 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(213,426)):
-            for j in iter(range(320,480)):
-                point = (i, j)
-                sum_zone8 =  sum_zone8 + depth_frame[point[1], point[0]]
-
-        for i in iter(range(426,640)):
-            for j in iter(range(320,480)):
-                point = (i, j)
-                sum_zone9 =  sum_zone9 + depth_frame[point[1], point[0]]
-
-        
-        dist_zone1 = sum_zone1/34080
-        dist_zone2 = sum_zone2/34080
-        dist_zone3 = sum_zone3/34080
-        dist_zone4 = sum_zone4/34080
-        dist_zone5 = sum_zone5/34080
-        dist_zone6 = sum_zone6/34080
-        dist_zone7 = sum_zone7/34080
-        dist_zone8 = sum_zone8/34080
-        dist_zone9 = sum_zone9/34080
-
         limite = 1000
-        if dist_zone1 < limite or dist_zone2 < limite or dist_zone3 < limite or dist_zone4 < limite or dist_zone5 < limite or dist_zone6 < limite or dist_zone7 < limite or dist_zone8 < limite or dist_zone9 < limite:
+        if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
             DetectObstacle = True
         else:
             DetectObstacle = False
@@ -470,7 +379,7 @@ def main():
         elif estate == "Arm_check" :
            
             try:
-                response_take_off = Navegacion.client_srv_take_off(5)
+                response_take_off = Navegacion.client_srv_take_off(1)
                 rospy.loginfo(response_take_off.result)
                 estate = response_take_off.result
             except rospy.ServiceException as e:
@@ -485,7 +394,7 @@ def main():
                     response_vel_lin= Navegacion.client_srv_vel_lin(0.1,0,0)
                     rospy.loginfo(response_vel_lin.result)
                 except rospy.ServiceException as e:
-                    print("Falla en el servicio de aterrizaje ", e) 
+                    print("Falla en el servicio inicio de velocidades ", e) 
 
             if DetectObstacle==False:
                 
@@ -501,7 +410,7 @@ def main():
             elif DetectObstacle:
                 Navegacion.reset_controlers()
                 print("EVADIR EVADIR")
-                Navegacion.AvoidObstacle(dist_zone1,dist_zone2,dist_zone3,dist_zone4,dist_zone5,dist_zone6,dist_zone7,dist_zone8,dist_zone9)
+                Navegacion.AvoidObstacle()
 
 
             
@@ -519,20 +428,9 @@ def main():
             respuesta = input()
 
             if respuesta == "S":
-                state = inicio
+                state = "inicio"
             elif respuesta == "N":
                 print("FINAL")
-            
-        sum_zone1 = 0
-        sum_zone2 = 0
-        sum_zone3 = 0
-        sum_zone4 = 0
-        sum_zone5 = 0
-        sum_zone6 = 0
-        sum_zone7 = 0
-        sum_zone8 = 0
-        sum_zone9 = 0
-
 
 
 if __name__ == "__main__":

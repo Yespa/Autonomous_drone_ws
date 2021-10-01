@@ -151,8 +151,8 @@ class Node_navegation_drone:
         
         tol = 0
 
-        self.latitude_destino = -35.3530008* 10000
-        self.longitude_destino = 149.1650351* 10000
+        #self.latitude_destino = -35.3530008* 10000
+        #self.longitude_destino = 149.1650351* 10000
 
         self.dist_latitude = (self.latitude_destino - self.latitude_now*10000)  #Distancia variable a recorrer en latitud
         self.dist_longitude = (self.longitude_destino - self.longitude_now*10000) #Distancia variabale a recorrer en longitud
@@ -356,6 +356,7 @@ def main():
         limite = 1000
         if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
             DetectObstacle = True
+            #Navegacion.reset_controlers()
         else:
             DetectObstacle = False
             
@@ -399,18 +400,15 @@ def main():
             if DetectObstacle==False:
                 
                 Navegacion.goto()
-
-
                 rospy.sleep(1)
-
                 if Navegacion.dist_recorrer < 0.1:
                     Navegacion.reset()
                     estate = "Pos_check"
 
             elif DetectObstacle:
-                Navegacion.reset_controlers()
                 print("EVADIR EVADIR")
                 Navegacion.AvoidObstacle()
+                rospy.sleep(1)
 
 
             
@@ -424,12 +422,12 @@ def main():
                 print("Falla en el servicio de aterrizaje ", e) 
 
         elif estate == "Land_check":
-            print("Se realizará un nuevo vuelo? S o N")
+            print("Se realizará un nuevo vuelo? 1 o 0")
             respuesta = input()
 
-            if respuesta == "S":
-                state = "inicio"
-            elif respuesta == "N":
+            if respuesta == 1:
+                estate = "inicio"
+            elif respuesta == 0:
                 print("FINAL")
 
 

@@ -113,7 +113,7 @@ catkin_package(
 )
 
 
-catkin_install_python(PROGRAMS scripts/drone_functions_node.py scripts/navegation_test_node.py
+catkin_install_python(PROGRAMS scripts/drone_functions_node.py scripts/GUI_node.py scripts/navegation_test_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

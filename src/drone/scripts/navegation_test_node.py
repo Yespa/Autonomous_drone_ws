@@ -422,6 +422,7 @@ def main():
                 print("Falla en el servicio de aterrizaje ", e) 
 
         elif estate == "Land_check":
+            flag = 1
             print("Se realizará un nuevo vuelo? 1 o 0")
             respuesta = input()
 

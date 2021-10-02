@@ -44,12 +44,170 @@ class GUI_node(Tk):
         #GUI Deployment
         self.deploymentGUI()
 
+        #Inicializacion de variables
+        self.angle = 0
+        self.estate_param = "none"
+        self.flag = 1
+
+        #CLIENT SERVICES
+
+        #Cliente del servicio de armado
+        #Esperamos que el servicio este activo y asignamos el cliente a un objeto
+        self.wait_srv_arm_drone = rospy.wait_for_service("drone/srv/arm")
+        self.client_srv_arm_drone = rospy.ServiceProxy("drone/srv/arm",arm)
+
+        #Cliente del servicio de despegue
+        self.wait_srv_take_off = rospy.wait_for_service("drone/srv/take_off")
+        self.client_srv_take_off = rospy.ServiceProxy("drone/srv/take_off",takeoff)
+
+        #Cliente del servicio de rotacion
+        self.wait_srv_rot_yaw = rospy.wait_for_service("drone/srv/rot_yaw")
+        self.client_srv_rot_yaw= rospy.ServiceProxy("drone/srv/rot_yaw",rot_yaw)
+
+        #Cliente para el servicio de velocidad lineal   
+        self.wait_srv_vel_lin = rospy.wait_for_service("drone/srv/vel_lin")
+        self.client_srv_vel_lin= rospy.ServiceProxy("drone/srv/vel_lin",vel_lin)
+
+        #Cliente para el servicio de aterrizaje
+        self.wait_srv_land = rospy.wait_for_service("drone/srv/land")
+        self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land) 
+
 
 
     def relative_to_assets(self,path):
         path_images = os.path.join(
                 CURRENT_FOLDER, "assets", path)
         return path_images
+
+    def stop(self):
+ 
+        self.k = "CONECTANDO"
+        print(self.k)
+
+    ##METODO PARA ARMAR EL DRON
+    def active_arm(self):
+
+        try:
+            response_arm_dron = self.client_srv_arm_drone('Arm')
+            rospy.loginfo(response_arm_dron.result)
+            self.estate_param = response_arm_dron.result
+        except rospy.ServiceException as e:
+            print("Falla en el servicio de armado ", e)
+
+    ##METODO PARA REALIZAR EL DESPEGUE
+    def active_takeoff(self):
+        
+        if self.estate_param == "Arm_check":
+
+            try:
+                response_take_off = self.client_srv_take_off(2)
+                rospy.loginfo(response_take_off.result)
+                #estate = response_take_off.result
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de despegue ", e)
+        
+        else:
+            rospy.loginfo(" -- Primero arme el dron -- ")
+
+
+
+    ##METODO PARA REALIZAR EL ATERRIZAJE DEL DRON
+    def active_land(self):
+
+        if self.estate_param != "Arm" or self.estate_param != "Land_check":
+
+            try:
+                response_land = self.client_srv_land("land")
+                rospy.loginfo(response_land.result)
+                #estate = response_land.result
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de aterrizaje ", e)
+
+            self.flag = 1
+
+        else:
+
+            rospy.loginfo(" -- ACCION NO VALIDA -- ")
+
+    ##METODO PARA ENVIAR VELOCIDAD HACIA EL FRENTE DEL DRON
+
+    def active_velocity(self):
+
+        if self.estate_param != "Arm" or self.estate_param != "Land_check":
+            
+            try:
+                response_vel_lin= self.client_srv_vel_lin(2,0,0)
+                rospy.loginfo(response_vel_lin.result)
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de velocidad adelante", e)
+
+            self.flag = 0
+
+        else:
+
+            rospy.loginfo(" -- ACCION NO VALIDA -- ")
+
+    ##METODO PARA ENVIAR VELOCIDAD HACIA ARRIBA
+
+    def active_up(self):
+
+        if self.estate_param != "Arm" or self.estate_param != "Land_check":
+
+            try:
+                response_vel_lin= self.client_srv_vel_lin(0,0,-1)
+                rospy.loginfo(response_vel_lin.result)
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de velocidad asceso ", e)
+
+        else:
+
+            rospy.loginfo(" -- ACCION NO VALIDA -- ")
+
+    ##METODO PARA ENVIAR VELOCIDAD HACIA ABAJO 
+
+    def active_down(self):
+
+        if self.estate_param != "Arm" or self.estate_param != "Land_check":
+
+            try:
+                response_vel_lin= self.client_srv_vel_lin(0,0,1)
+                rospy.loginfo(response_vel_lin.result)
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de velocidad descenso ", e)
+
+        else:
+
+            rospy.loginfo(" -- ACCION NO VALIDA -- ") 
+
+    ##METODO PARA ENVIAR UNA ROTACION DE 45 GRADOS 
+
+    def active_rotation(self):
+
+        if self.estate_param != "Arm" or self.estate_param != "Land_check":
+
+            if self.flag == 1: #Flag provisional para el error del simulador
+                    self.flag = 0
+                    try:
+                        response_vel_lin= self.client_srv_vel_lin(0.1,0,0)
+                        rospy.loginfo(response_vel_lin.result)
+                    except rospy.ServiceException as e:
+                        print("Falla en el servicio inicio de velocidades ", e)
+
+            self.angle = self.angle + 45
+
+            if self.angle >= 360:
+                self.angle = 0
+
+            try:
+                response_rotation= self.client_srv_rot_yaw(self.angle)
+                rospy.loginfo(response_rotation.result)
+            except rospy.ServiceException as e:
+                print("Falla en el servicio de rotacion ", e)
+
+        else:
+
+            rospy.loginfo(" -- ACCION NO VALIDA -- ")                
+
 
     def deploymentGUI(self):
 
@@ -152,7 +310,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command= None,
+            command= self.active_velocity,
             relief="flat"
         )
 
@@ -174,7 +332,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.active_down,
             relief="flat"
         )
 
@@ -196,7 +354,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.active_up,
             relief="flat"
         )
 
@@ -218,7 +376,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.active_rotation,
             relief="flat"
         )
 
@@ -240,7 +398,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.active_land,
             relief="flat"
         )
 
@@ -262,7 +420,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.active_takeoff,
             relief="flat"
         )
 
@@ -284,7 +442,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.active_arm,
             relief="flat"
         )
 
@@ -328,7 +486,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.stop,
             relief="flat"
         )
 

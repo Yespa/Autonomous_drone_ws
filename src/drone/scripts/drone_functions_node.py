@@ -393,7 +393,7 @@ class Node_functions_drone:
         
         while True:
         
-            print(" Current orientation ", self.vehicle.heading, "- Orientation request: ", self.heading)
+            print(" Current orientation ", self.vehicle.heading, "- Orientation request: ", request.heading)
 
             #Nos metemos en un ciclo hasta que se cumpla el valor de ultima posicion del cabeceo
             #para que la funcion no sea interrumpida por otro comando

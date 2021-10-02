@@ -16,6 +16,9 @@ from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 #Importamos los servicios
 from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse
 
+from sensor_msgs.msg import NavSatFix
+from geometry_msgs.msg import TwistStamped, PointStamped
+
 CURRENT_FOLDER = os.path.abspath(os.path.dirname(__file__))
 CURRENT_UPPER_FOLDER = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir))
 
@@ -27,7 +30,7 @@ class GUI_node(Tk):
 
         self.geometry("1208x658")
         self.configure(bg = "#131A27")
-        self.title("GUI BASICA")
+        self.title("Navigation Monitor")
 
         self.canvas = Canvas(
             self,
@@ -47,7 +50,11 @@ class GUI_node(Tk):
         #Inicializacion de variables
         self.angle = 0
         self.estate_param = "none"
-        self.flag = 1
+        self.flag = 1 
+        self.longitude_now = 0
+        self.latitude_now = 0
+        self.altitude_now = 0
+        self.heading = 0
 
         #CLIENT SERVICES
 
@@ -72,7 +79,13 @@ class GUI_node(Tk):
         self.wait_srv_land = rospy.wait_for_service("drone/srv/land")
         self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land) 
 
+        #SUSCRIPTORES
 
+        #Suscriptor de la posición actual del drone.
+        self.sub_pos_gps = rospy.Subscriber('drone/pos_gps',NavSatFix,self.update_pos_gps)
+
+        #Suscriptor del cabeceo actual del drone
+        self.sub_orient_angle_z_now = rospy.Subscriber('drone/orient_angle_z_now', PointStamped, self.update_angle_z)
 
     def relative_to_assets(self,path):
         path_images = os.path.join(
@@ -83,6 +96,25 @@ class GUI_node(Tk):
  
         self.k = "CONECTANDO"
         print(self.k)
+
+    #METODO PARA ACTUALIZAR EL VALOR DE LA COORDENADA ENVIADA DESDE EL NODO DEL DRON
+    def update_pos_gps(self,msg):
+        self.latitude_now = msg.latitude
+        self.longitude_now = msg.longitude
+        self.altitude_now = msg.altitude
+        
+
+    def update_angle_z(self,point_ang_z):
+        self.angle_now = point_ang_z.point.z
+
+    def update(self):
+
+        self.entry_3.configure(text=self.longitude_now)
+        self.entry_5.configure(text=self.angle_now)
+        self.entry_8.configure(text=self.latitude_now)
+        self.entry_7.configure(text=self.altitude_now)
+
+        self.after(1000,self.update)
 
     ##METODO PARA ARMAR EL DRON
     def active_arm(self):
@@ -578,10 +610,11 @@ class GUI_node(Tk):
             image=self.entry_image_3
         )
 
-        self.entry_3 = Text(
+        self.entry_3 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
 
         self.entry_3.place(
@@ -624,10 +657,11 @@ class GUI_node(Tk):
             image=self.entry_image_5
         )
 
-        self.entry_5 = Text(
+        self.entry_5 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
 
         self.entry_5.place(
@@ -672,10 +706,11 @@ class GUI_node(Tk):
             image=self.entry_image_7
         )
 
-        self.entry_7 = Text(
+        self.entry_7 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
 
         self.entry_7.place(
@@ -696,10 +731,11 @@ class GUI_node(Tk):
             image=self.entry_image_8
         )
 
-        self.entry_8 = Text(
+        self.entry_8 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
 
         self.entry_8.place(
@@ -764,6 +800,7 @@ if __name__ == "__main__":
     rospy.init_node('GUI')
     GUI = GUI_node()
     GUI.resizable(False,False)
+    GUI.after(1000, GUI.update)
     GUI.mainloop()
 
 print("Script dead")

@@ -18,6 +18,7 @@ from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_y
 
 from sensor_msgs.msg import NavSatFix
 from geometry_msgs.msg import TwistStamped, PointStamped
+from std_msgs.msg import String
 
 CURRENT_FOLDER = os.path.abspath(os.path.dirname(__file__))
 CURRENT_UPPER_FOLDER = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir))
@@ -55,6 +56,9 @@ class GUI_node(Tk):
         self.latitude_now = 0
         self.altitude_now = 0
         self.heading = 0
+        self.Vx = 0
+        self.state_navigation = "none"
+        self.state_connection = "none"
 
         #CLIENT SERVICES
 
@@ -84,8 +88,14 @@ class GUI_node(Tk):
         #Suscriptor de la posición actual del drone.
         self.sub_pos_gps = rospy.Subscriber('drone/pos_gps',NavSatFix,self.update_pos_gps)
 
+        #Subscriber at the rate sent from the navigation node
+        self.sub_vel_nav = rospy.Subscriber('Nav/vel_lin',TwistStamped,self.update_velocity)
+
         #Suscriptor del cabeceo actual del drone
         self.sub_orient_angle_z_now = rospy.Subscriber('drone/orient_angle_z_now', PointStamped, self.update_angle_z)
+
+        #Suscriptor del estado de navegación
+        self.sub_state_navigation = rospy.Subscriber('Nav/state_navigation', String, self.update_state_navigation)
 
     def relative_to_assets(self,path):
         path_images = os.path.join(
@@ -103,19 +113,43 @@ class GUI_node(Tk):
         self.longitude_now = msg.longitude
         self.altitude_now = msg.altitude
         
+    def update_state_navigation(self,std_string):
+        self.state_navigation = std_string.data
+    #    self.state_connection = "NONE"
+        print("ACt")
 
     def update_angle_z(self,point_ang_z):
         self.angle_now = point_ang_z.point.z
 
+    def update_velocity(self,Vel_nav):
+        self.Vx = Vel_nav.twist.linear.x
+        self.Vy = Vel_nav.twist.linear.y
+        self.Vz = Vel_nav.twist.linear.z
+        self.heading = Vel_nav.twist.angular.z
+
     def update(self):
 
         self.entry_3.configure(text=self.longitude_now)
+        self.entry_4.configure(text=int(self.Vx))
         self.entry_5.configure(text=self.angle_now)
         self.entry_8.configure(text=self.latitude_now)
         self.entry_7.configure(text=self.altitude_now)
+        self.entry_9.configure(text=self.state_navigation)
+        self.entry_10.configure(text=self.state_connection)
 
         self.after(1000,self.update)
 
+    ##METODO ALMANCENAR LA INFO
+    def run_navigation(self):
+
+        latiude_destino = self.entry_1.get()
+        longitude_destino = self.entry_2.get()
+        height =self.entry_6.get()
+        print("LATITUDE = ",latiude_destino)
+        print("LONGITUDE = ", longitude_destino)
+        print("HEIGHT = ", height)
+
+    
     ##METODO PARA ARMAR EL DRON
     def active_arm(self):
 
@@ -496,7 +530,7 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=None,
+            command=self.run_navigation,
             relief="flat"
         )
 
@@ -634,10 +668,11 @@ class GUI_node(Tk):
             273.0,
             image=self.entry_image_4
         )
-        self.entry_4 = Text(
+        self.entry_4 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
         self.entry_4.place(
             x=696.0,
@@ -756,10 +791,11 @@ class GUI_node(Tk):
             image=self.entry_image_9
         )
 
-        self.entry_9 = Text(
+        self.entry_9 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
 
         self.entry_9.place(
@@ -781,10 +817,11 @@ class GUI_node(Tk):
             image=self.entry_image_10
         )
 
-        self.entry_10 = Text(
+        self.entry_10 = Label(self,
             bd=0,
             bg="#0888B6",
-            highlightthickness=0
+            highlightthickness=0,
+            text=""
         )
 
         self.entry_10.place(

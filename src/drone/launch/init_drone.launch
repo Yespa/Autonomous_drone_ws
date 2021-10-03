@@ -1,0 +1,7 @@
+<launch>
+
+    <node name="drone_functions" pkg="drone" type="drone_functions_node.py" respawn="true" output="screen" />
+    <node name="depth_camera_pyrealsense" pkg="drone" type="depth_camera_pyrealsense_node.py" respawn="true" output="screen" />
+    <node name="GUI" pkg="drone" type="GUI_node.py" respawn="true" output="screen" />
+
+</launch>

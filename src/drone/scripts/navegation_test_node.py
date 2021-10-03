@@ -17,7 +17,7 @@ import numpy as np
 
 from sensor_msgs.msg import NavSatFix, BatteryState
 from geometry_msgs.msg import TwistStamped, QuaternionStamped, PointStamped
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, String
 
 
 #Importamos los servicios
@@ -104,6 +104,9 @@ class Node_navegation_drone:
 
         #Publicador de la velocidad calculado para el dron
         self.pub_vel_nav = rospy.Publisher('Nav/vel_lin',TwistStamped,queue_size=10)
+
+        #Publicador del estado de la navegación
+        self.pub_state_navigation = rospy.Publisher('Nav/state_navigation',String,queue_size=10)
 
     #Metodo para publicar la velocidad del dron
     def publish_velocity(self):
@@ -333,7 +336,7 @@ class Node_navegation_drone:
 
 def main():
 
-    print("Nodo inicializado........")
+    print("---- Nodo Navegación inicializado ----")
     rospy.init_node('Navegacion')
 
     #Periodo de muestreo
@@ -342,6 +345,9 @@ def main():
     Navegacion = Node_navegation_drone()
 
     estate = "inicio"
+
+    state_navegation = "DESARMADO"
+    Navegacion.pub_state_navigation.publish(state_navegation)
 
     flag = 1
 
@@ -371,23 +377,33 @@ def main():
             Navegacion.longitude_destino = input()*10000
             
             try:
+                state_navegation = "ARMING"
+                Navegacion.pub_state_navigation.publish(state_navegation)
                 response_arm_dron = Navegacion.client_srv_arm_drone('Arm')
                 rospy.loginfo(response_arm_dron.result)
                 estate = response_arm_dron.result
+
             except rospy.ServiceException as e:
                 print("Falla en el servicio de armado ", e)
+                state_navegation = "DESARMADO"
+
 
         elif estate == "Arm_check" :
            
             try:
+                state_navegation = "TAKING OFF"
+                Navegacion.pub_state_navigation.publish(state_navegation)
                 response_take_off = Navegacion.client_srv_take_off(1)
                 rospy.loginfo(response_take_off.result)
                 estate = response_take_off.result
             except rospy.ServiceException as e:
                 print("Falla en el servicio de despegue ", e)
+                state_navegation = "ERROR TAKING OFF"
 
 
         elif estate == "Alt_check":
+
+            
 
             if flag == 1: #Flag provisional para el error del simulador"
                 flag = 0
@@ -398,7 +414,7 @@ def main():
                     print("Falla en el servicio inicio de velocidades ", e) 
 
             if DetectObstacle==False:
-                
+                state_navegation = "GOTOGO"
                 Navegacion.goto()
                 rospy.sleep(1)
                 if Navegacion.dist_recorrer < 0.1:
@@ -407,21 +423,26 @@ def main():
 
             elif DetectObstacle:
                 print("EVADIR EVADIR")
+                state_navegation = "AVOID OBSTACLES"
                 Navegacion.AvoidObstacle()
                 rospy.sleep(1)
 
 
             
         elif estate == "Pos_check":
-
+            
             try:
+                state_navegation = "LANDING"
+                Navegacion.pub_state_navigation.publish(state_navegation)
                 response_land = Navegacion.client_srv_land("land")
                 rospy.loginfo(response_land.result)
                 estate = response_land.result
             except rospy.ServiceException as e:
-                print("Falla en el servicio de aterrizaje ", e) 
+                print("Falla en el servicio de aterrizaje ", e)
+                state_navegation = "ERROR LANDING" 
 
         elif estate == "Land_check":
+            state_navegation = "DESARMADO"
             flag = 1
             print("Se realizará un nuevo vuelo? 1 o 0")
             respuesta = input()
@@ -430,6 +451,8 @@ def main():
                 estate = "inicio"
             elif respuesta == 0:
                 print("FINAL")
+
+        Navegacion.pub_state_navigation.publish(state_navegation)
 
 
 if __name__ == "__main__":

@@ -484,7 +484,7 @@ class Node_functions_drone:
 def main():
 
     print("---------- Initialized node -------")
-    rospy.init_node('drone')
+    rospy.init_node('drone_functions')
 
     drone = Node_functions_drone("127.0.0.1:14550",5760) 
 

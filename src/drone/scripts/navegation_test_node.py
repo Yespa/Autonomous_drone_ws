@@ -21,7 +21,7 @@ from std_msgs.msg import Float64MultiArray, String
 
 
 #Importamos los servicios
-from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse
+from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse, navigation_act, navigation_actResponse
 
 class Node_navegation_drone:
 
@@ -35,6 +35,7 @@ class Node_navegation_drone:
         self.vel_lin_x = 0
         self.vel_lin_y = 0
         self.vel_lin_z = 0
+        self.act_script = 0
         
         #Constates de control
         self.Kp = 0.77
@@ -87,7 +88,11 @@ class Node_navegation_drone:
 
         #Cliente para el servicio de aterrizaje
         self.wait_srv_land = rospy.wait_for_service("drone/srv/land")
-        self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land) 
+        self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land)
+
+        
+        #Drone landing service
+        self.srv_navigation_act = rospy.Service("GUI/srv/activar_navigation",navigation_act,self.act_script_navigation)   
 
         #SUSCRIPTORES
 
@@ -126,6 +131,12 @@ class Node_navegation_drone:
         vel_drone.twist.angular.z = self.heading
 
         self.pub_vel_nav.publish(vel_drone)
+
+    def act_script_navigation(self,request):
+        
+        self.act_script = 1
+        
+        return navigation_actResponse('Script_navegacion_activo')
 
     #METODO PARA ACTUALIZAR EL VALOR DE LA COORDENADA ENVIADA DESDE EL NODO DEL DRON
     def update_pos_gps(self,msg):
@@ -268,7 +279,7 @@ class Node_navegation_drone:
             #Ecuacion de controlador PID
             self.Vy = self.Kp_avoidVy*Term_proporcional + self.Ki_avoidVy*Term_integrativo + self.Kd_avoidVy*Term_derivativo
             
-            self.Vy = self.Vy/72001130
+            self.Vy = self.Vy/72001130 #EXPLICARESTO BIEN
 
             if self.Orient_Vy < 0:
                 self.Vy = -self.Vy
@@ -355,104 +366,104 @@ def main():
 
     print(" ")
     print("-----Maquina de estados iniciada------")
-
-    while not rospy.is_shutdown():
-
-
-        limite = 1000
-        if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
-            DetectObstacle = True
-            #Navegacion.reset_controlers()
-        else:
-            DetectObstacle = False
-            
-
-        ## Finite State Machine
-
-        if estate == "inicio":
-
-            print("Ingrese la latitud de destino")
-            Navegacion.latitude_destino = input()*10000
-            print("Ingrese la longitud de destino")
-            Navegacion.longitude_destino = input()*10000
-            
-            try:
-                state_navegation = "ARMING"
-                Navegacion.pub_state_navigation.publish(state_navegation)
-                response_arm_dron = Navegacion.client_srv_arm_drone('Arm')
-                rospy.loginfo(response_arm_dron.result)
-                estate = response_arm_dron.result
-
-            except rospy.ServiceException as e:
-                print("Falla en el servicio de armado ", e)
-                state_navegation = "DESARMADO"
+    while True:
+        while not rospy.is_shutdown() and Navegacion.act_script == 1:
 
 
-        elif estate == "Arm_check" :
-           
-            try:
-                state_navegation = "TAKING OFF"
-                Navegacion.pub_state_navigation.publish(state_navegation)
-                response_take_off = Navegacion.client_srv_take_off(1)
-                rospy.loginfo(response_take_off.result)
-                estate = response_take_off.result
-            except rospy.ServiceException as e:
-                print("Falla en el servicio de despegue ", e)
-                state_navegation = "ERROR TAKING OFF"
+            limite = 1000
+            if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
+                DetectObstacle = True
+                #Navegacion.reset_controlers()
+            else:
+                DetectObstacle = False
+                
 
+            ## Finite State Machine
 
-        elif estate == "Alt_check":
+            if estate == "inicio":
 
-            
-
-            if flag == 1: #Flag provisional para el error del simulador"
-                flag = 0
+                print("Ingrese la latitud de destino")
+                Navegacion.latitude_destino = input()*10000
+                print("Ingrese la longitud de destino")
+                Navegacion.longitude_destino = input()*10000
+                
                 try:
-                    response_vel_lin= Navegacion.client_srv_vel_lin(0.1,0,0)
-                    rospy.loginfo(response_vel_lin.result)
+                    state_navegation = "ARMING"
+                    Navegacion.pub_state_navigation.publish(state_navegation)
+                    response_arm_dron = Navegacion.client_srv_arm_drone('Arm')
+                    rospy.loginfo(response_arm_dron.result)
+                    estate = response_arm_dron.result
+
                 except rospy.ServiceException as e:
-                    print("Falla en el servicio inicio de velocidades ", e) 
-
-            if DetectObstacle==False:
-                state_navegation = "GOTOGO"
-                Navegacion.goto()
-                rospy.sleep(1)
-                if Navegacion.dist_recorrer < 0.1:
-                    Navegacion.reset()
-                    estate = "Pos_check"
-
-            elif DetectObstacle:
-                print("EVADIR EVADIR")
-                state_navegation = "AVOID OBSTACLES"
-                Navegacion.AvoidObstacle()
-                rospy.sleep(1)
+                    print("Falla en el servicio de armado ", e)
+                    state_navegation = "DESARMADO"
 
 
+            elif estate == "Arm_check" :
             
-        elif estate == "Pos_check":
-            
-            try:
-                state_navegation = "LANDING"
-                Navegacion.pub_state_navigation.publish(state_navegation)
-                response_land = Navegacion.client_srv_land("land")
-                rospy.loginfo(response_land.result)
-                estate = response_land.result
-            except rospy.ServiceException as e:
-                print("Falla en el servicio de aterrizaje ", e)
-                state_navegation = "ERROR LANDING" 
+                try:
+                    state_navegation = "TAKING OFF"
+                    Navegacion.pub_state_navigation.publish(state_navegation)
+                    response_take_off = Navegacion.client_srv_take_off(1)
+                    rospy.loginfo(response_take_off.result)
+                    estate = response_take_off.result
+                except rospy.ServiceException as e:
+                    print("Falla en el servicio de despegue ", e)
+                    state_navegation = "ERROR TAKING OFF"
 
-        elif estate == "Land_check":
-            state_navegation = "DESARMADO"
-            flag = 1
-            print("Se realizará un nuevo vuelo? 1 o 0")
-            respuesta = input()
 
-            if respuesta == 1:
-                estate = "inicio"
-            elif respuesta == 0:
-                print("FINAL")
+            elif estate == "Alt_check":
 
-        Navegacion.pub_state_navigation.publish(state_navegation)
+                
+
+                if flag == 1: #Flag provisional para el error del simulador"
+                    flag = 0
+                    try:
+                        response_vel_lin= Navegacion.client_srv_vel_lin(0.1,0,0)
+                        rospy.loginfo(response_vel_lin.result)
+                    except rospy.ServiceException as e:
+                        print("Falla en el servicio inicio de velocidades ", e) 
+
+                if DetectObstacle==False:
+                    state_navegation = "GOTOGO"
+                    Navegacion.goto()
+                    rospy.sleep(1)
+                    if Navegacion.dist_recorrer < 0.1:
+                        Navegacion.reset()
+                        estate = "Pos_check"
+
+                elif DetectObstacle:
+                    print("EVADIR EVADIR")
+                    state_navegation = "AVOID OBSTACLES"
+                    Navegacion.AvoidObstacle()
+                    rospy.sleep(1)
+
+
+                
+            elif estate == "Pos_check":
+                
+                try:
+                    state_navegation = "LANDING"
+                    Navegacion.pub_state_navigation.publish(state_navegation)
+                    response_land = Navegacion.client_srv_land("land")
+                    rospy.loginfo(response_land.result)
+                    estate = response_land.result
+                except rospy.ServiceException as e:
+                    print("Falla en el servicio de aterrizaje ", e)
+                    state_navegation = "ERROR LANDING" 
+
+            elif estate == "Land_check":
+                state_navegation = "DESARMADO"
+                flag = 1
+                print("Se realizará un nuevo vuelo? 1 o 0")
+                respuesta = input()
+
+                if respuesta == 1:
+                    estate = "inicio"
+                elif respuesta == 0:
+                    print("FINAL")
+
+            Navegacion.pub_state_navigation.publish(state_navegation)
 
 
 if __name__ == "__main__":

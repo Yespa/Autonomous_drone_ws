@@ -14,7 +14,7 @@ from tkinter import *
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
 #Importamos los servicios
-from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse
+from drone.srv import arm, armResponse, takeoff, takeoffResponse, rot_yaw, rot_yawResponse, vel_lin, vel_linResponse, land, landResponse, navigation_act, navigation_actResponse
 
 from sensor_msgs.msg import NavSatFix
 from geometry_msgs.msg import TwistStamped, PointStamped
@@ -81,7 +81,11 @@ class GUI_node(Tk):
 
         #Cliente para el servicio de aterrizaje
         self.wait_srv_land = rospy.wait_for_service("drone/srv/land")
-        self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land) 
+        self.client_srv_land= rospy.ServiceProxy("drone/srv/land",land)
+
+        #Cliente para el servicio de activacion del nodo de navegación
+        self.wait_srv_navigation_act = rospy.wait_for_service("GUI/srv/activar_navigation")
+        self.client_srv_navigation_act= rospy.ServiceProxy("GUI/srv/activar_navigation",navigation_act)  
 
         #SUSCRIPTORES
 
@@ -115,7 +119,7 @@ class GUI_node(Tk):
         
     def update_state_navigation(self,std_string):
         self.state_navigation = std_string.data
-    #    self.state_connection = "NONE"
+        self.state_connection = "NONE"
         print("ACt")
 
     def update_angle_z(self,point_ang_z):
@@ -149,6 +153,13 @@ class GUI_node(Tk):
         print("LONGITUDE = ", longitude_destino)
         print("HEIGHT = ", height)
 
+        try:
+            response_navigation_act = self.client_srv_navigation_act(1)
+            rospy.loginfo(response_navigation_act.result)
+            self.estate_param = response_navigation_act.result
+
+        except rospy.ServiceException as e:
+            print("Falla en el servicio de activación navegación", e)
     
     ##METODO PARA ARMAR EL DRON
     def active_arm(self):

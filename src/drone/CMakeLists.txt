@@ -61,6 +61,7 @@ find_package(catkin REQUIRED COMPONENTS
    rot_yaw.srv
    vel_lin.srv
    land.srv
+   navigation_act.srv
  )
 
 ## Generate actions in the 'action' folder

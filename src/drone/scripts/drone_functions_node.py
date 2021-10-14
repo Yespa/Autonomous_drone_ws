@@ -71,19 +71,19 @@ class Node_functions_drone:
         #PUBLISHERS
 
         #Publisher of the current global coordinates of drone
-        self.pub_pos_gps = rospy.Publisher('drone/pos_gps',NavSatFix,queue_size=10)
+        self.pub_pos_gps = rospy.Publisher('drone/pos_gps',NavSatFix,queue_size=1)
 
         #Publisher of the current linear velocity of the drone
-        self.pub_vel_now = rospy.Publisher('drone/vel_now',TwistStamped,queue_size=10)
+        self.pub_vel_now = rospy.Publisher('drone/vel_now',TwistStamped,queue_size=1)
 
         #Publisher of the angle of orientation of the drone with respect to the north of the earth.
-        self.pub_orient_angle_z_now = rospy.Publisher('drone/orient_angle_z_now', PointStamped, queue_size=10)
+        self.pub_orient_angle_z_now = rospy.Publisher('drone/orient_angle_z_now', PointStamped, queue_size=1)
 
         #Publisher of the current drone battery status
         self.pub_battery_now = rospy.Publisher('drone/battery_now', BatteryState, queue_size=10)
 
         #Publisher of the current drone attitude
-        self.pub_orientacion_quaternion = rospy.Publisher('drone/orient_quaternion',QuaternionStamped, queue_size=10)
+        self.pub_orientacion_quaternion = rospy.Publisher('drone/orient_quaternion',QuaternionStamped, queue_size=1)
 
     #METHODS
 

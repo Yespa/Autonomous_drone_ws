@@ -19,8 +19,6 @@ from std_msgs.msg import Float64MultiArray
 class Node_depth_camera_pyrealsense:
 
     def __init__(self):
-        
-        self.rate = rospy.Rate(10)
 
         #PUBLICADORES
 
@@ -50,7 +48,7 @@ class DepthCamera:
         device_product_line = str(device.get_info(rs.camera_info.product_line))
 
         config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30) # puede quitar
 
 
         # Start streaming
@@ -59,17 +57,13 @@ class DepthCamera:
     def get_frame(self):
         frames = self.pipeline.wait_for_frames()
 
-        align = rs.align(rs.stream.color)
-        frames = align.process(frames)
-
         depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
 
         depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
-        if not depth_frame or not color_frame:
+
+        if not depth_frame:
             return False, None, None
-        return True, depth_image, color_image
+        return True, depth_image
 
     def release(self):
         self.pipeline.stop()
@@ -82,7 +76,7 @@ def main():
     rospy.init_node('depth_camera_pyrealsense')
 
     #Periodo de muestreo
-    rospy.Rate(15)
+    rate = rospy.Rate(10)
 
     depth_camera = Node_depth_camera_pyrealsense()
 
@@ -97,7 +91,7 @@ def main():
     while not rospy.is_shutdown():
 
 
-        ret, depth_frame, color_frame = dc.get_frame()
+        ret, depth_frame= dc.get_frame()
        
         for i in iter(range(213)):
             for j in iter(range(160)):
@@ -138,12 +132,12 @@ def main():
             for j in iter(range(320,480)):
                 point = (i, j)
                 sum_zone8 =  sum_zone8 + depth_frame[point[1], point[0]]
-
+        
         for i in iter(range(426,640)):
             for j in iter(range(320,480)):
                 point = (i, j)
                 sum_zone9 =  sum_zone9 + depth_frame[point[1], point[0]]
-
+        
         
         dist_zone1 = sum_zone1/34080
         dist_zone2 = sum_zone2/34080
@@ -166,6 +160,8 @@ def main():
         sum_zone7 = 0
         sum_zone8 = 0
         sum_zone9 = 0
+        
+        rate.sleep()
 
 
 if __name__ == "__main__":

@@ -120,7 +120,7 @@ class GUI_node(Tk):
     def update_state_navigation(self,std_string):
         self.state_navigation = std_string.data
         self.state_connection = "NONE"
-        print("ACt")
+        #print("ACt")
 
     def update_angle_z(self,point_ang_z):
         self.angle_now = point_ang_z.point.z

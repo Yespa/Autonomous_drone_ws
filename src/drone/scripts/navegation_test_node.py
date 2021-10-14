@@ -108,10 +108,10 @@ class Node_navegation_drone:
         #PUBLICADORES
 
         #Publicador de la velocidad calculado para el dron
-        self.pub_vel_nav = rospy.Publisher('Nav/vel_lin',TwistStamped,queue_size=10)
+        self.pub_vel_nav = rospy.Publisher('Nav/vel_lin',TwistStamped,queue_size=1)
 
         #Publicador del estado de la navegación
-        self.pub_state_navigation = rospy.Publisher('Nav/state_navigation',String,queue_size=10)
+        self.pub_state_navigation = rospy.Publisher('Nav/state_navigation',String,queue_size=1)
 
     #Metodo para publicar la velocidad del dron
     def publish_velocity(self):
@@ -252,15 +252,17 @@ class Node_navegation_drone:
         self.error_avoid = self.setpoint - self.dist_med
         print(self.error_avoid)
         
-        self.center = self.d2**2 + self.d5**2 + self.d7**2
+        self.center_lateral = self.d2**2 + self.d5**2 + self.d7**2
 
-        self.lateral_izquierdo = self.d1**2 + self.d4**2 + self.d6**2 + self.center
+        self.center_franjas = self.d4**2 + self.d5**2 + self.d6**2
 
-        self.lateral_derecho = self.d3**2 + self.d6**2 + self.d9**2 + self.center
+        self.lateral_izquierdo = self.d1**2 + self.d4**2 + self.d7**2 + self.center_lateral
 
-        self.franja_superior = self.d1**2 + self.d2**2 + self.d3**2 + self.center
+        self.lateral_derecho = self.d3**2 + self.d6**2 + self.d9**2 + self.center_lateral
 
-        self.franja_inferior = self.d7**2 + self.d8**2 + self.d9**2 + self.center
+        self.franja_superior = self.d1**2 + self.d2**2 + self.d3**2 + self.center_franjas
+
+        self.franja_inferior = self.d7**2 + self.d8**2 + self.d9**2 + self.center_franjas
 
         
         self.Orient_Vy = self.lateral_derecho - self.lateral_izquierdo
@@ -300,9 +302,9 @@ class Node_navegation_drone:
             self.time_old = time.time()
 
         if self.Vy>1: #Evito un sobre esfuerzo
-            self.vel_lin_y = 1
+            self.vel_lin_y = 1.5
         elif self.Vy<-1: #Evito valores negativos
-            self.vel_lin_y = -1
+            self.vel_lin_y = -1.5
         else: 
             self.vel_lin_y = self.Vy
 
@@ -370,12 +372,19 @@ def main():
         while not rospy.is_shutdown() and Navegacion.act_script == 1:
 
 
-            limite = 1000
+            limite = 800
             if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
                 DetectObstacle = True
                 #Navegacion.reset_controlers()
             else:
                 DetectObstacle = False
+
+            limiteSal = 500
+            if Navegacion.d1 < limiteSal or Navegacion.d2 < limiteSal or Navegacion.d3 < limiteSal or Navegacion.d4 < limiteSal or Navegacion.d5 < limiteSal or Navegacion.d6 < limiteSal or Navegacion.d7 < limiteSal or Navegacion.d8 < limiteSal or Navegacion.d9 < limiteSal:
+                DetectObstacleSal = True
+                #Navegacion.reset_controlers()
+            else:
+                DetectObstacleSal= False
                 
 
             ## Finite State Machine
@@ -404,7 +413,7 @@ def main():
                 try:
                     state_navegation = "TAKING OFF"
                     Navegacion.pub_state_navigation.publish(state_navegation)
-                    response_take_off = Navegacion.client_srv_take_off(1)
+                    response_take_off = Navegacion.client_srv_take_off(3)
                     rospy.loginfo(response_take_off.result)
                     estate = response_take_off.result
                 except rospy.ServiceException as e:
@@ -424,21 +433,42 @@ def main():
                     except rospy.ServiceException as e:
                         print("Falla en el servicio inicio de velocidades ", e) 
 
+                #if True:
                 if DetectObstacle==False:
                     state_navegation = "GOTOGO"
                     Navegacion.goto()
-                    rospy.sleep(1)
+                    rospy.sleep(0.2)
                     if Navegacion.dist_recorrer < 0.1:
                         Navegacion.reset()
                         estate = "Pos_check"
 
-                elif DetectObstacle:
-                    print("EVADIR EVADIR")
-                    state_navegation = "AVOID OBSTACLES"
-                    Navegacion.AvoidObstacle()
-                    rospy.sleep(1)
+                elif DetectObstacleSal or DetectObstacle:
+                #elif DetectObstacle:
+                    
+                    while DetectObstacleSal:
+                        print("EVADIR EVADIR")
 
+                        limite = 500
+                        if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
+                            DetectObstacle = True
+                            #Navegacion.reset_controlers()
+                        else:
+                            DetectObstacle = False
 
+                        limiteSal =800
+                        if Navegacion.d1 < limiteSal or Navegacion.d2 < limiteSal or Navegacion.d3 < limiteSal or Navegacion.d4 < limiteSal or Navegacion.d5 < limiteSal or Navegacion.d6 < limiteSal or Navegacion.d7 < limiteSal or Navegacion.d8 < limiteSal or Navegacion.d9 < limiteSal:
+                            DetectObstacleSal = True
+                            #Navegacion.reset_controlers()
+                        else:
+                            DetectObstacleSal= False
+
+                        state_navegation = "AVOID OBSTACLES"
+                        Navegacion.AvoidObstacle()
+                        rospy.sleep(0.2)
+
+                    Navegacion.vel_lin_y = 0
+                    Navegacion.vel_lin_z = 0
+                    Navegacion.publish_velocity()
                 
             elif estate == "Pos_check":
                 

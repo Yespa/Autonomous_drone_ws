@@ -434,15 +434,15 @@ def main():
                         print("Falla en el servicio inicio de velocidades ", e) 
 
                 #if True:
-                if DetectObstacle==False:
-                    state_navegation = "GOTOGO"
-                    Navegacion.goto()
-                    rospy.sleep(0.2)
-                    if Navegacion.dist_recorrer < 0.1:
-                        Navegacion.reset()
-                        estate = "Pos_check"
+                #if DetectObstacle==False:
+                #    state_navegation = "GOTOGO"
+                #    Navegacion.goto()
+                #    rospy.sleep(0.2)
+                #    if Navegacion.dist_recorrer < 0.1:
+                #        Navegacion.reset()
+                #        estate = "Pos_check"
 
-                elif DetectObstacleSal or DetectObstacle:
+                if DetectObstacleSal or DetectObstacle:
                 #elif DetectObstacle:
                     
                     while DetectObstacleSal:

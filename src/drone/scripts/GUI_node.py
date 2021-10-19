@@ -106,10 +106,7 @@ class GUI_node(Tk):
                 CURRENT_FOLDER, "assets", path)
         return path_images
 
-    def stop(self):
  
-        self.k = "CONECTANDO"
-        print(self.k)
 
     #METODO PARA ACTUALIZAR EL VALOR DE LA COORDENADA ENVIADA DESDE EL NODO DEL DRON
     def update_pos_gps(self,msg):
@@ -134,12 +131,12 @@ class GUI_node(Tk):
     def update(self):
 
         self.entry_3.configure(text=self.longitude_now)
-        self.entry_4.configure(text=int(self.Vx))
+        self.entry_4.configure(text=round(self.Vx,3))
         self.entry_5.configure(text=self.angle_now)
         self.entry_8.configure(text=self.latitude_now)
         self.entry_7.configure(text=self.altitude_now)
         self.entry_9.configure(text=self.state_navigation)
-        self.entry_10.configure(text=self.state_connection)
+        #self.entry_10.configure(text=self.state_connection)
 
         self.after(1000,self.update)
 
@@ -555,7 +552,7 @@ class GUI_node(Tk):
     def boton_connection(self):
 
         self.button_image_12 = PhotoImage(
-            file=self.relative_to_assets("connection.png"))
+            file=self.relative_to_assets("logouniversity.png"))
 
         self.button_12 = Button(self,
             image=self.button_image_12,
@@ -563,17 +560,17 @@ class GUI_node(Tk):
             background="#0E4763",
             activebackground="#0E4763",
             highlightthickness=0,
-            command=self.stop,
-            relief="flat"
+            command=None,
+            relief="sunken"
         )
 
         self.button_12.place(
-            x=112.0147705078125,
-            y=180.6253662109375,
-            width=120.34172058105469,
-            height=77.36927032470703
+            x=90.0147705078125,
+            y=150.6253662109375,
+            width=200,
+            height=126
         )
-
+    
     def boton_title(self):
 
         self.button_image_13 = PhotoImage(
@@ -595,6 +592,7 @@ class GUI_node(Tk):
             width=752.0,
             height=73.0
         )
+
 
     def enter_latitude(self):
         
@@ -818,29 +816,29 @@ class GUI_node(Tk):
 
     def view_connection_status(self):
 
+        self.button_image_14 = PhotoImage(
+            file=self.relative_to_assets("center_min.png"))
 
-        self.entry_image_10 = PhotoImage(
-            file=self.relative_to_assets("entry_10.png"))
-
-        self.entry_bg_10 = self.canvas.create_image(
-            423.5,
-            221.0,
-            image=self.entry_image_10
-        )
-
-        self.entry_10 = Label(self,
-            bd=0,
-            bg="#0888B6",
+        self.button_14 = Button(self,
+            image=self.button_image_14,
+            borderwidth=0,
+            background="#0E4763",
+            activebackground="#0E4763",
             highlightthickness=0,
-            text=""
+            command=None,
+            relief="sunken"
         )
 
-        self.entry_10.place(
-            x=327.0,
-            y=202.0,
-            width=193.0,
-            height=36.0
+        self.button_14.place(
+            x=295.0,
+            y=169,
+            width=277,
+            height=95
         )
+
+   
+    
+    
 
 if __name__ == "__main__":
     

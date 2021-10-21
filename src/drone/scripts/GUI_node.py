@@ -57,7 +57,7 @@ class GUI_node(Tk):
         self.altitude_now = 0
         self.heading = 0
         self.Vx = 0
-        self.state_navigation = "none"
+        self.state_navigation = "ESPERANDO INFO"
         self.state_connection = "none"
 
         #CLIENT SERVICES
@@ -87,6 +87,12 @@ class GUI_node(Tk):
         self.wait_srv_navigation_act = rospy.wait_for_service("GUI/srv/activar_navigation")
         self.client_srv_navigation_act= rospy.ServiceProxy("GUI/srv/activar_navigation",navigation_act)  
 
+        
+        #PUBLISHERS
+
+        #Publisher of the current global coordinates of drone
+        self.pub_pos_gps_goal = rospy.Publisher('GUI/goal_pos_gps',NavSatFix,queue_size=1)
+        
         #SUSCRIPTORES
 
         #Suscriptor de la posición actual del drone.
@@ -143,12 +149,31 @@ class GUI_node(Tk):
     ##METODO ALMANCENAR LA INFO
     def run_navigation(self):
 
-        latiude_destino = self.entry_1.get()
+        latitude_destino = self.entry_1.get()
         longitude_destino = self.entry_2.get()
         height =self.entry_6.get()
-        print("LATITUDE = ",latiude_destino)
+        print("LATITUDE = ",latitude_destino)
         print("LONGITUDE = ", longitude_destino)
         print("HEIGHT = ", height)
+
+        #Este mensaje tiene una estructura especial es por ellos que se formula de la siguiente manera
+        msg =NavSatFix()
+
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = "GUI/Goal_Pos_GPS"
+        msg.status.status = 0
+        msg.status.service = 0
+
+
+        #Solicito posicion a la pixhawk
+        msg.latitude =  float(latitude_destino)
+        msg.longitude = float(longitude_destino)
+        msg.altitude =  float(height)
+        msg.position_covariance = (0,0,0,0,0,0,0,0,0) 
+        msg.position_covariance_type = 0
+
+        #Publico la informacion
+        self.pub_pos_gps_goal.publish(msg)
 
         try:
             response_navigation_act = self.client_srv_navigation_act(1)
@@ -837,7 +862,6 @@ class GUI_node(Tk):
         )
 
    
-    
     
 
 if __name__ == "__main__":

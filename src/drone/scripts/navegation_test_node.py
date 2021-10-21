@@ -99,6 +99,9 @@ class Node_navegation_drone:
         #Suscriptor de la posición actual del drone.
         self.sub_pos_gps = rospy.Subscriber('drone/pos_gps',NavSatFix,self.update_pos_gps)
 
+        #Suscriptor de la posición de destino.
+        self.sub_pos_gps_goal = rospy.Subscriber('GUI/goal_pos_gps',NavSatFix,self.update_pos_gps_goal)
+
         #Suscriptor del cabeceo actual del drone
         self.sub_orient_angle_z_now = rospy.Subscriber('drone/orient_angle_z_now', PointStamped, self.update_angle_z)
 
@@ -116,7 +119,7 @@ class Node_navegation_drone:
     #Metodo para publicar la velocidad del dron
     def publish_velocity(self):
 
-        #Se solicita la información a la pixhawk
+        #Se solicita la información a la pixhawk|
         # --> Lleno los vectores de velocidad lineales y angulares
         
         vel_drone = TwistStamped()
@@ -146,6 +149,11 @@ class Node_navegation_drone:
 
     def update_angle_z(self,point_ang_z):
         self.angle_now = point_ang_z.point.z
+
+    def update_pos_gps_goal(self,msg):
+        self.latitude_goal = msg.latitude
+        self.longitude_goal = msg.longitude
+        self.height_goal = msg.altitude
 
     #METODO PARA ACTUALIZAR LAS DISTANCIAS MEDIDAS POR LA CAMARA DE PROFUNDIDAD
     def update_depth_distances(self,array_distances):
@@ -368,6 +376,8 @@ def main():
 
     print(" ")
     print("-----Maquina de estados iniciada------")
+
+
     while True:
         while not rospy.is_shutdown() and Navegacion.act_script == 1:
 
@@ -391,10 +401,12 @@ def main():
 
             if estate == "inicio":
 
-                print("Ingrese la latitud de destino")
-                Navegacion.latitude_destino = input()*10000
-                print("Ingrese la longitud de destino")
-                Navegacion.longitude_destino = input()*10000
+                print("Ingrese la latitud de destino", Navegacion.latitude_goal)
+                Navegacion.latitude_destino = Navegacion.latitude_goal*10000
+                #Navegacion.latitude_destino = input()*10000
+                print("Ingrese la longitud de destino", Navegacion.longitude_goal)
+                Navegacion.longitude_destino = Navegacion.longitude_goal*10000
+                #Navegacion.longitude_destino = input()*10000
                 
                 try:
                     state_navegation = "ARMING"
@@ -413,7 +425,8 @@ def main():
                 try:
                     state_navegation = "TAKING OFF"
                     Navegacion.pub_state_navigation.publish(state_navegation)
-                    response_take_off = Navegacion.client_srv_take_off(3)
+                    response_take_off = Navegacion.client_srv_take_off(Navegacion.height_goal)
+                    #response_take_off = Navegacion.client_srv_take_off(3)
                     rospy.loginfo(response_take_off.result)
                     estate = response_take_off.result
                 except rospy.ServiceException as e:
@@ -422,8 +435,7 @@ def main():
 
 
             elif estate == "Alt_check":
-
-                
+               
 
                 if flag == 1: #Flag provisional para el error del simulador"
                     flag = 0
@@ -434,16 +446,18 @@ def main():
                         print("Falla en el servicio inicio de velocidades ", e) 
 
                 #if True:
-                #if DetectObstacle==False:
-                #    state_navegation = "GOTOGO"
-                #    Navegacion.goto()
-                #    rospy.sleep(0.2)
-                #    if Navegacion.dist_recorrer < 0.1:
-                #        Navegacion.reset()
-                #        estate = "Pos_check"
+                if DetectObstacle==False:
+                    state_navegation = "GOTOGO"
+                    Navegacion.goto()
+                    rospy.sleep(0.2)
+                    if Navegacion.dist_recorrer < 0.1:
+                        Navegacion.reset()
+                        estate = "Pos_check"
 
-                if DetectObstacleSal or DetectObstacle:
+                elif DetectObstacleSal or DetectObstacle:
                 #elif DetectObstacle:
+                    
+                    state_navegation = "AVOID OBSTACLES"
                     
                     while DetectObstacleSal:
                         print("EVADIR EVADIR")
@@ -462,12 +476,13 @@ def main():
                         else:
                             DetectObstacleSal= False
 
-                        state_navegation = "AVOID OBSTACLES"
+                        Navegacion.pub_state_navigation.publish(state_navegation)
                         Navegacion.AvoidObstacle()
                         rospy.sleep(0.2)
 
                     Navegacion.vel_lin_y = 0
                     Navegacion.vel_lin_z = 0
+                    Navegacion.heading = Navegacion.angle_now
                     Navegacion.publish_velocity()
                 
             elif estate == "Pos_check":
@@ -483,15 +498,13 @@ def main():
                     state_navegation = "ERROR LANDING" 
 
             elif estate == "Land_check":
-                state_navegation = "DESARMADO"
+                state_navegation = "DESARMADO / ESP INFO"
                 flag = 1
-                print("Se realizará un nuevo vuelo? 1 o 0")
-                respuesta = input()
+                estate = "inicio"
+                Navegacion.act_script = 0
+                
+                print("FIN DE NAVEGACION")
 
-                if respuesta == 1:
-                    estate = "inicio"
-                elif respuesta == 0:
-                    print("FINAL")
 
             Navegacion.pub_state_navigation.publish(state_navegation)
 

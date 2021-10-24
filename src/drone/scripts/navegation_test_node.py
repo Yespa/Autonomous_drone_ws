@@ -113,10 +113,13 @@ class Node_navegation_drone:
         #Publicador de la velocidad calculado para el dron
         self.pub_vel_nav = rospy.Publisher('Nav/vel_lin',TwistStamped,queue_size=1)
 
+        #Publicador de la velocidad calculado para el dron
+        self.pub_vel_nav_avoid = rospy.Publisher('Nav/vel_lin_avoid',TwistStamped,queue_size=1)
+
         #Publicador del estado de la navegación
         self.pub_state_navigation = rospy.Publisher('Nav/state_navigation',String,queue_size=1)
 
-    #Metodo para publicar la velocidad del dron
+    #Metodo para publicar la velocidad del dron - GotoGo
     def publish_velocity(self):
 
         #Se solicita la información a la pixhawk|
@@ -134,6 +137,26 @@ class Node_navegation_drone:
         vel_drone.twist.angular.z = self.heading
 
         self.pub_vel_nav.publish(vel_drone)
+
+    #Metodo para publicar la velocidad del dron
+    def publish_velocity_avoid(self):
+
+        #Se solicita la información a la pixhawk|
+        # --> Lleno los vectores de velocidad lineales y angulares
+        
+        vel_drone = TwistStamped()
+
+        vel_drone.header.stamp = rospy.Time.now()
+        vel_drone.header.frame_id = "Nav/Velocidades_avoid"
+        vel_drone.twist.linear.x = self.vel_lin_x
+        vel_drone.twist.linear.y = self.vel_lin_y
+        vel_drone.twist.linear.z = self.vel_lin_z
+        vel_drone.twist.angular.x = 0
+        vel_drone.twist.angular.y = 0
+        vel_drone.twist.angular.z = 0
+
+        self.pub_vel_nav_avoid.publish(vel_drone)
+
 
     def act_script_navigation(self,request):
         
@@ -328,7 +351,7 @@ class Node_navegation_drone:
             self.vel_lin_x =1
 
               
-        self.publish_velocity()
+        self.publish_velocity_avoid()
 
                                  
     #METODO PARA RESETEAR VARIABLES
@@ -482,8 +505,8 @@ def main():
 
                     Navegacion.vel_lin_y = 0
                     Navegacion.vel_lin_z = 0
-                    Navegacion.heading = Navegacion.angle_now
-                    Navegacion.publish_velocity()
+                    #Navegacion.heading = Navegacion.angle_now
+                    Navegacion.publish_velocity_avoid()
                 
             elif estate == "Pos_check":
                 

@@ -65,8 +65,11 @@ class Node_functions_drone:
 
         #SUBSCRIBERS
 
-        #Subscriber at the rate sent from the navigation node
+        #Subscriber at the rate sent from the navigation node - GotoGo
         self.sub_vel_nav = rospy.Subscriber('Nav/vel_lin',TwistStamped,self.update_velocity)
+
+        #Subscriber at the rate sent from the navigation node - Avoid Obstacles
+        self.sub_vel_nav_avoid = rospy.Subscriber('Nav/vel_lin_avoid',TwistStamped,self.update_velocity_avoid)
 
         #PUBLISHERS
 
@@ -87,7 +90,7 @@ class Node_functions_drone:
 
     #METHODS
 
-    #Method for updating the speed delivered by the navigation node
+    #Method for updating the speed delivered by the navigation node - GotoGo
 
     def update_velocity(self,Vel_nav):
         self.Vx = Vel_nav.twist.linear.x
@@ -125,15 +128,15 @@ class Node_functions_drone:
                         tol = 0
 
 
-
-        if int(self.heading) in range((int(self.vehicle.heading) - 3),(int(self.vehicle.heading) + 3)) or tol==1:
-
-            self.Vel_mat_rot_Z_Aut()
-        else:
-
-            self.condition_yaw_Aut()
+    #Method for updating the speed delivered by the navigation node - Avoid Obstacles
+    def update_velocity_avoid(self,Vel_nav):
+        self.Vx = Vel_nav.twist.linear.x
+        self.Vy = Vel_nav.twist.linear.y
+        self.Vz = Vel_nav.twist.linear.z
         
+        self.Vel_mat_rot_Z_Aut()
 
+        
     #Method to obtain current position (latitude, longitude and altitude)
     def publish_pos_gps(self):
 

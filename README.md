@@ -1,7 +1,6 @@
 #  EXPERIMENTAL AUTONOMOUS DRONE 
 
 
-
 ## SOFTWARE DEPENDENCIES :file_cabinet:
 
 
@@ -21,11 +20,17 @@ OpenCV (Open Source Computer Vision Library) is a library of programming functio
 * [Pymavlink](https://github.com/ArduPilot/pymavlink)<br>
 It is a Python adaptation of the MAVLink communication protocol.
 
-* [Pyrealsense2] (https://intelrealsense.github.io/librealsense/python_docs/_generated/pyrealsense2.html) <br>
+* [Pyrealsense2](https://intelrealsense.github.io/librealsense/python_docs/_generated/pyrealsense2.html) <br>
 It is a library that allows accessing and extracting information from the Intel RealSense D435I camera.
 
 * [Tkinter](https://docs.python.org/es/3/library/tk.html)<br>
 Package used for the creation of the graphical interface for navigation monitoring.
+
+### EXPERIMENTAL DRON
+
+### NAVIGATION SYSTEM :flying_saucer:
+
+### GUI
 
 ## AUTHOR
 

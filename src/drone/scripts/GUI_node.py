@@ -199,7 +199,7 @@ class GUI_node(Tk):
         if self.estate_param == "Arm_check":
 
             try:
-                response_take_off = self.client_srv_take_off(2)
+                response_take_off = self.client_srv_take_off(3)
                 rospy.loginfo(response_take_off.result)
                 #estate = response_take_off.result
             except rospy.ServiceException as e:

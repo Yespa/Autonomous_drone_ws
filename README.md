@@ -5,7 +5,7 @@
 
 * [ROS Melodic Morenia](http://wiki.ros.org/melodic) <br>
 
-### PYTHON DEPENDENCIES
+### PYTHON DEPENDENCIES :snake:
 
 * [Python](https://www.python.org/) <br>
 Python is a programming language that lets you work quickly and integrate systems more effectively.  
@@ -25,7 +25,7 @@ It is a library that allows accessing and extracting information from the Intel 
 * [Tkinter](https://docs.python.org/es/3/library/tk.html)<br>
 Package used for the creation of the graphical interface for navigation monitoring.
 
-## EXPERIMENTAL DRON
+## EXPERIMENTAL DRON :flying_saucer:
 
 The following elements were used to assemble the drone:
 
@@ -64,7 +64,7 @@ And in these Youtube videos you will be able to observe how it behaves while fly
 * [First flight tests](https://youtu.be/eaa0WxqBArw)<br>
 
 
-## NAVIGATION SYSTEM :flying_saucer:
+## NAVIGATION SYSTEM :round_pushpin: 
 
 The following components were used for the navigation system:
 

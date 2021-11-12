@@ -1,7 +1,7 @@
 #  EXPERIMENTAL AUTONOMOUS DRONE 
 
 
-## SOFTWARE DEPENDENCIES :file_cabinet:
+### SOFTWARE DEPENDENCIES :file_cabinet:
 
 * [ROS Melodic Morenia](http://wiki.ros.org/melodic) <br>
 
@@ -25,7 +25,7 @@ It is a library that allows accessing and extracting information from the Intel 
 * [Tkinter](https://docs.python.org/es/3/library/tk.html)<br>
 Package used for the creation of the graphical interface for navigation monitoring.
 
-# EXPERIMENTAL DRON
+## EXPERIMENTAL DRON
 
 The following elements were used to assemble the drone:
 
@@ -56,7 +56,7 @@ Youtube
 
 The drone assembly before being integrated with the navigation system looks as follows:
 
-Foto
+<img src="Attachments/img/Drone.jpg" width=40%> <br>
 
 And in these Youtube videos you will be able to observe how it behaves while flying.
 
@@ -64,7 +64,7 @@ And in these Youtube videos you will be able to observe how it behaves while fly
 * [First flight tests](https://youtu.be/eaa0WxqBArw)<br>
 
 
-# NAVIGATION SYSTEM :flying_saucer:
+## NAVIGATION SYSTEM :flying_saucer:
 
 The following components were used for the navigation system:
 
@@ -75,6 +75,8 @@ The following components were used for the navigation system:
 An MDF structure is built to attach these elements to the drone and thus make use of the integration of all these technologies. 
 
 The system aspect of the experimental drone is as follows.
+
+<img src="Attachments/img/Drone_assem.jpg" width=40%> <br>
 
 A simple navigation system is developed directing the UAV to a previously defined terrestrial coordinate. The navigation script is in charge of taking off, orienting, moving and landing the drone to the destination point.
 
@@ -102,7 +104,14 @@ In this node all the information from the depth camera is obtained, the captured
 
 The main function of the GUI is to allow the user to visualize the current position, orientation, altitude and X-axis velocity parameters, also the current navigation status can be visualized, that is, if the UAV is taking off, avoiding obstacles, landing, among others. It has a panel of 7 buttons that interact directly with the services of the drone functions node to allow the user to manage the UAV manually and especially to perform a debug of each of its functions. There is also the section where the destination coordinates and the takeoff height are typed, which will be published in the topic called "GUI/goal_pos_gps", the navigation will be executed by means of the service "GUI/srv/activate_navigation" that is activated once the start navigation button is clicked.
 
+The interface does not run directly on the Jetson Nano as it would increase the computational consumption. would increase the computational consumption and make the processes take longer to run. processes take longer to run. To use the GUI in conjunction with the whole navigation system it is necessary to use a ROS tool called necessary to use a ROS tool called "Multiple Remote Machine", this allows to connect several machines to a Multiple machines can be connected to the same ROS Master system remotely through a SSH connection through a SSH connection where all the machines share the same public IP (Łukuzzi). public IP. In the case of this project, the node of the In the case of this project we run the GUI node on a computer that will be on the ground and the rest of the nodes on the Jetson Nano. Nano, as both computers are on the same ROS system, they will be able to share their messages without their messages without any problem between them.
+
 Communication between these nodes is as follows.
+
+#### Topics
+<img src="Attachments/img/Topics.png" width=40%> <br>
+#### Services
+<img src="Attachments/img/Services.png" width=40%> <br>
 
 In the following videos you can see how the navigation system works in simulations and in real life.
 
@@ -120,6 +129,6 @@ In the following videos you can see how the navigation system works in simulatio
 
 ## AUTHOR
 
-# William Yesid Palencia Arismendy
+### William Yesid Palencia Arismendy
 
 

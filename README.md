@@ -133,6 +133,7 @@ In the following videos you can see how the navigation system works in simulatio
 
 ## AUTHOR
 
-### William Yesid Palencia Arismendy
+#### William Yesid Palencia Arismendy
+Final semester student of mechatronics engineering at EIA University.
 
 

@@ -51,7 +51,37 @@ The following elements were used to assemble the drone:
 * [Flysky FS-i6X - 6-10 Channel Remote Control Transmitter](https://www.amazon.com/gp/product/B0744DPPL8/ref=ppx_yo_dt_b_asin_title_o03_s00?ie=UTF8&psc=1)<br>
 
 
+The following Youtube link will show a tutorial of how this drone was assemble.
+
+Youtube
+
+The drone assembly before being integrated with the navigation system looks as follows:
+
+Foto
+
+And in these Youtube videos you will be able to observe how it behaves while flying.
+
+* [Stabilization tests](https://youtu.be/OdA1hklx3Kw)<br>
+* [First flight tests](https://youtu.be/eaa0WxqBArw)<br>
+
+
 ### NAVIGATION SYSTEM :flying_saucer:
+
+The following components were used for the navigation system:
+
+* [NVIDIA Jetson Nano Developer Kit](https://www.amazon.com/gp/product/B084DSDDLT/ref=ppx_yo_dt_b_asin_title_o01_s00?ie=UTF8&psc=1)<br>
+* [Wireless-AC8265 - Dual-mode wireless NIC module for Jetson Nano Developer Kit M.2 NGFF](https://www.amazon.com/gp/product/B07SM4SPLV/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1)<br>
+* [Intel RealSense - Depth camera D435i](https://www.amazon.com/-/es/Intel-RealSense-profundidad-plateado-82635D435IDK5P/dp/B07MWR2YJB/ref=sr_1_2?__mk_es_US=%C3%85M%C3%85%C5%BD%C3%95%C3%91&keywords=D435i&qid=1636746456&sr=8-2)<br>
+
+An MDF structure is built to attach these elements to the drone and thus make use of the integration of all these technologies. 
+
+The system aspect of the experimental drone is as follows.
+
+A simple navigation system is developed directing the UAV to a previously defined terrestrial coordinate. The navigation script is in charge of taking off, orienting, moving and landing the drone to the destination point.
+
+For the navigation to run it was necessary to create other scripts that run in parallel as ROS nodes in the Python framework and these are:
+
+
 
 ### GUI
 

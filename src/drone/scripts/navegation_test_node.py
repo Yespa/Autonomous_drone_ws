@@ -477,36 +477,6 @@ def main():
                         Navegacion.reset()
                         estate = "Pos_check"
 
-                elif DetectObstacleSal or DetectObstacle:
-                #elif DetectObstacle:
-                    
-                    state_navegation = "AVOID OBSTACLES"
-                    
-                    while DetectObstacleSal:
-                        print("EVADIR EVADIR")
-
-                        limite = 500
-                        if Navegacion.d1 < limite or Navegacion.d2 < limite or Navegacion.d3 < limite or Navegacion.d4 < limite or Navegacion.d5 < limite or Navegacion.d6 < limite or Navegacion.d7 < limite or Navegacion.d8 < limite or Navegacion.d9 < limite:
-                            DetectObstacle = True
-                            #Navegacion.reset_controlers()
-                        else:
-                            DetectObstacle = False
-
-                        limiteSal =800
-                        if Navegacion.d1 < limiteSal or Navegacion.d2 < limiteSal or Navegacion.d3 < limiteSal or Navegacion.d4 < limiteSal or Navegacion.d5 < limiteSal or Navegacion.d6 < limiteSal or Navegacion.d7 < limiteSal or Navegacion.d8 < limiteSal or Navegacion.d9 < limiteSal:
-                            DetectObstacleSal = True
-                            #Navegacion.reset_controlers()
-                        else:
-                            DetectObstacleSal= False
-
-                        Navegacion.pub_state_navigation.publish(state_navegation)
-                        Navegacion.AvoidObstacle()
-                        rospy.sleep(0.2)
-
-                    Navegacion.vel_lin_y = 0
-                    Navegacion.vel_lin_z = 0
-                    #Navegacion.heading = Navegacion.angle_now
-                    Navegacion.publish_velocity_avoid()
                 
             elif estate == "Pos_check":
                 

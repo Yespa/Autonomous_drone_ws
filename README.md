@@ -109,9 +109,13 @@ The interface does not run directly on the Jetson Nano as it would increase the 
 Communication between these nodes is as follows.
 
 #### Topics
-<img src="Attachments/img/Topics.png" width=40%> <br>
+<img src="Attachments/img/Topics.png" width=100%> <br>
 #### Services
-<img src="Attachments/img/Services.png" width=40%> <br>
+<img src="Attachments/img/Services.png" width=100%> <br>
+
+And its logic follows with respect to this finite state machine.
+
+<img src="Attachments/img/states.png" width=100%> <br>
 
 In the following videos you can see how the navigation system works in simulations and in real life.
 

@@ -3,7 +3,6 @@
 
 ## SOFTWARE DEPENDENCIES :file_cabinet:
 
-
 * [ROS Melodic Morenia](http://wiki.ros.org/melodic) <br>
 
 ### PYTHON DEPENDENCIES
@@ -26,7 +25,7 @@ It is a library that allows accessing and extracting information from the Intel 
 * [Tkinter](https://docs.python.org/es/3/library/tk.html)<br>
 Package used for the creation of the graphical interface for navigation monitoring.
 
-### EXPERIMENTAL DRON
+# EXPERIMENTAL DRON
 
 The following elements were used to assemble the drone:
 
@@ -65,7 +64,7 @@ And in these Youtube videos you will be able to observe how it behaves while fly
 * [First flight tests](https://youtu.be/eaa0WxqBArw)<br>
 
 
-### NAVIGATION SYSTEM :flying_saucer:
+# NAVIGATION SYSTEM :flying_saucer:
 
 The following components were used for the navigation system:
 
@@ -88,7 +87,6 @@ This program has two methods for navigation, the first method is the "GotoGo", t
 And the "obstacle avoidance" method (AvoidObstacles in the script) is in charge of sending the corresponding velocities in the X-axis, Y-axis and Z-axis in order to avoid hitting any object in the visual range of the depth camera.
 camera's visual range. This method uses the messages arriving from the depth camera node, which corresponds to 9 distances.
 
-Translated with www.DeepL.com/Translator (free version)
 
 For the navigation to run it was necessary to create other scripts that run in parallel as ROS nodes in the Python framework and these are:
 
@@ -108,13 +106,13 @@ Communication between these nodes is as follows.
 
 In the following videos you can see how the navigation system works in simulations and in real life.
 
-# Videos of the simulations
+### Videos of the simulations
 
 * [GotoGo navigation simulation](https://youtu.be/Xa8Zr5M3L-0)<br>
 * [Avoid Obstacles Simulation](https://youtu.be/eaa0WxqBArw)<br>
 * [Avoid Obstacles & GotoGo Simulation](https://youtu.be/6rM8IQlQfck))<br>
 
-# Real life videos
+### Real life videos
 
 * [Live testing of the drone's function node and the GUI manual mode](https://youtu.be/Qjc_Ib7Lg54)<br>
 * [Coordinate 1 - GotoGo navigation test in real life](https://youtu.be/EWi795xQ4LM)<br>
